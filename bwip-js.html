@@ -1,0 +1,778 @@
+<!DOCTYPE html>
+<!-- saved from url=(0044)https://bwip-js.metafloor.com/demo/demo.html -->
+<html>
+	<head>
+		<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+		<title>bwip-js - JavaScript Barcode Generator</title>
+		<meta name="keywords" content="bar code, barcode generator, online barcode generator, free barcode generator, javascript, javascript library, nodejs, QR Code, EAN, EAN 13, Code 128, UPC, ISBN, ITF 14, Code 39, GS1, GS1 128, PDF417, HIBC, DataMatrix, Data Matrix, DataBar, OCR, OCR B, OCR font, Aztec Code, PostNet, USPS, Pharmacode">
+		<meta name="description" content="JavaScript barcode generator and library.  Create any barcode in your browser.">
+
+		<link rel="preload" href="./bwip-js_files/bwip-js-min.js" as="script" />
+		<link rel="preload" href="./bwip-js_files/fontLoader.js" as="script" />
+		<link rel="preload" href="./bwip-js_files/drawing-svg.js" as="script" />
+
+		<script type="text/javascript" src="./bwip-js_files/bwip-js-min.js"></script>
+		<script type="text/javascript">
+			// file: bwip-js/lib/symdesc.js
+			//
+			// This code was automatically generated from:
+			// Barcode Writer in Pure PostScript - Version 2021-02-06
+			//
+			// Copyright (c) 2011-2021 Mark Warren
+			// Copyright (c) 2004-2021 Terry Burton
+			//
+			// Licensed MIT.  See the LICENSE file in the bwip-js root directory
+			// for the extended copyright notice.
+			var symdesc = {
+				"ean5":								"EAN-5 (5 digit addon)",
+				"ean2":								"EAN-2 (2 digit addon)",
+				"ean13":							"EAN-13",
+				"ean8":								"EAN-8",
+				"upca":								"UPC-A",
+				"upce":								"UPC-E",
+				"isbn":								"ISBN",
+				"ismn":								"ISMN",
+				"issn":								"ISSN",
+				"code128":							"Code 128",
+				"gs1-128":							"GS1-128",
+				"ean14":							"GS1-14",
+				"sscc18":							"SSCC-18",
+				"code39":							"Code 39",
+				"code39ext":						"Code 39 Extended",
+				"code32":							"Italian Pharmacode",
+				"pzn":								"Pharmazentralnummer (PZN)",
+				"code93":							"Code 93",
+				"code93ext":						"Code 93 Extended",
+				"interleaved2of5":					"Interleaved 2 of 5 (ITF)",
+				"itf14":							"ITF-14",
+				"identcode":						"Deutsche Post Identcode",
+				"leitcode":							"Deutsche Post Leitcode",
+				"databaromni":						"GS1 DataBar Omnidirectional",
+				"databarstacked":					"GS1 DataBar Stacked",
+				"databarstackedomni":				"GS1 DataBar Stacked Omnidirectional",
+				"databartruncated":					"GS1 DataBar Truncated",
+				"databarlimited":					"GS1 DataBar Limited",
+				"databarexpanded":					"GS1 DataBar Expanded",
+				"databarexpandedstacked":			"GS1 DataBar Expanded Stacked",
+				"gs1northamericancoupon":			"GS1 North American Coupon",
+				"pharmacode":						"Pharmaceutical Binary Code",
+				"pharmacode2":						"Two-track Pharmacode",
+				"code2of5":							"Code 25",
+				"industrial2of5":					"Industrial 2 of 5",
+				"iata2of5":							"IATA 2 of 5",
+				"matrix2of5":						"Matrix 2 of 5",
+				"coop2of5":							"COOP 2 of 5",
+				"datalogic2of5":					"Datalogic 2 of 5",
+				"code11":							"Code 11",
+				"bc412":							"BC412",
+				"rationalizedCodabar":				"Codabar",
+				"onecode":							"USPS Intelligent Mail",
+				"postnet":							"USPS POSTNET",
+				"planet":							"USPS PLANET",
+				"royalmail":						"Royal Mail 4 State Customer Code",
+				"auspost":							"AusPost 4 State Customer Code",
+				"kix":								"Royal Dutch TPG Post KIX",
+				"japanpost":						"Japan Post 4 State Customer Code",
+				"msi":								"MSI Modified Plessey",
+				"plessey":							"Plessey UK",
+				"telepen":							"Telepen",
+				"telepennumeric":					"Telepen Numeric",
+				"posicode":							"PosiCode",
+				"codablockf":						"Codablock F",
+				"code16k":							"Code 16K",
+				"code49":							"Code 49",
+				"channelcode":						"Channel Code",
+				"flattermarken":					"Flattermarken",
+				"raw":								"Custom 1D symbology",
+				"daft":								"Custom 4 state symbology",
+				"symbol":							"Miscellaneous symbols",
+				"pdf417":							"PDF417",
+				"pdf417compact":					"Compact PDF417",
+				"micropdf417":						"MicroPDF417",
+				"datamatrix":						"Data Matrix",
+				"datamatrixrectangular":			"Data Matrix Rectangular",
+				"datamatrixrectangularextension":	"Data Matrix Rectangular Extension",
+				"mailmark":							"Royal Mail Mailmark",
+				"qrcode":							"QR Code",
+				"swissqrcode":						"Swiss QR Code",
+				"microqrcode":						"Micro QR Code",
+				"rectangularmicroqrcode":			"Rectangular Micro QR Code",
+				"maxicode":							"MaxiCode",
+				"azteccode":						"Aztec Code",
+				"azteccodecompact":					"Compact Aztec Code",
+				"aztecrune":						"Aztec Runes",
+				"codeone":							"Code One",
+				"hanxin":							"Han Xin Code",
+				"dotcode":							"DotCode",
+				"ultracode":						"Ultracode",
+				"gs1-cc":							"GS1 Composite 2D Component",
+				"ean13composite":					"EAN-13 Composite",
+				"ean8composite":					"EAN-8 Composite",
+				"upcacomposite":					"UPC-A Composite",
+				"upcecomposite":					"UPC-E Composite",
+				"databaromnicomposite":				"GS1 DataBar Omnidirectional Composite",
+				"databarstackedcomposite":			"GS1 DataBar Stacked Composite",
+				"databarstackedomnicomposite":		"GS1 DataBar Stacked Omnidirectional Composite",
+				"databartruncatedcomposite":		"GS1 DataBar Truncated Composite",
+				"databarlimitedcomposite":			"GS1 DataBar Limited Composite",
+				"databarexpandedcomposite":			"GS1 DataBar Expanded Composite",
+				"databarexpandedstackedcomposite":	"GS1 DataBar Expanded Stacked Composite",
+				"gs1-128composite":					"GS1-128 Composite",
+				"gs1datamatrix":					"GS1 Data Matrix",
+				"gs1datamatrixrectangular":			"GS1 Data Matrix Rectangular",
+				"gs1qrcode":						"GS1 QR Code",
+				"gs1dotcode":						"GS1 DotCode",
+				"hibccode39":						"HIBC Code 39",
+				"hibccode128":						"HIBC Code 128",
+				"hibcdatamatrix":					"HIBC Data Matrix",
+				"hibcdatamatrixrectangular":		"HIBC Data Matrix Rectangular",
+				"hibcpdf417":						"HIBC PDF417",
+				"hibcmicropdf417":					"HIBC MicroPDF417",
+				"hibcqrcode":						"HIBC QR Code",
+				"hibccodablockf":					"HIBC Codablock F",
+				"hibcazteccode":					"HIBC Aztec Code"
+			};
+
+			(function(view) {
+				"use strict";
+				var Uint8Array = view.Uint8Array, HTMLCanvasElement = view.HTMLCanvasElement, canvas_proto = HTMLCanvasElement && HTMLCanvasElement.prototype
+					, to_data_url = "toDataURL", base64_ranks
+					, decode_base64 = function(base64) {
+						let len = base64.length, buffer = new Uint8Array(len / 4 * 3 | 0), i = 0, outptr = 0, last = [0, 0], state = 0, save = 0;
+						while (len--) {
+							let code = base64.charCodeAt(i++), rank = base64_ranks[code-43];
+							if (rank !== 255 && rank !== undefined) {
+								last[1] = last[0]; last[0] = code;
+								save = (save << 6) | rank;
+								if (++state % 4 === 0) {
+									buffer[outptr++] = save >>> 16;
+									if (last[1] !== 61 /* padding character */) buffer[outptr++] = save >>> 8;
+									if (last[0] !== 61 /* padding character */) buffer[outptr++] = save;
+								}
+							}
+						}
+						// 2/3 chance there's going to be some null bytes at the end, but that
+						// doesn't really matter with most image formats.
+						// If it somehow matters for you, truncate the buffer up outptr.
+						return buffer;
+					};
+				if (Uint8Array) {
+					base64_ranks = ((m, r)=>new Uint8Array([62, ...m, 63, ...r(52, 61), ...m, 0, ...m, ...r(0, 25), ...m, ...m, ...r(26, 51)]))( [255,255,255], function*(s, e){ while(s <= e){ yield s; s++; } } );
+					// console.log(base64_ranks.reduce((a,b)=>a+b), base64_ranks.reduce((a,b)=>a^b));
+				}
+				if (HTMLCanvasElement && !canvas_proto.toBlob) {
+					canvas_proto.toBlob = function(callback, type /*, ...args*/) {
+						if (!type) type = "image/png";
+						if (this.mozGetAsFile) {
+							callback(this.mozGetAsFile("canvas", type)); return;
+						} 
+						if (this.msToBlob && /^\s*image\/png\s*(?:$|;)/i.test(type)) {
+							callback(this.msToBlob()); return;
+						}
+
+						var dataURI = this[to_data_url].apply(this, Array.prototype.slice.call(arguments, 1)), header_end = dataURI.indexOf(",")
+							, data = dataURI.substring(header_end + 1), is_base64 = is_base64_regex.test(dataURI.substring(0, header_end)), blob;
+						if (Blob.fake) {
+							// no reason to decode a data: URI that's just going to become a data URI again
+							blob = new Blob();
+							blob.encoding = (is_base64) ? "base64" : "URI";
+							blob.data = data;
+							blob.size = data.length;
+						} else if (Uint8Array) {
+							if (is_base64) {
+								blob = new Blob([decode_base64(data)], {type: type});
+							} else {
+								blob = new Blob([decodeURIComponent(data)], {type: type});
+							}
+						}
+						callback(blob);
+					};
+
+					if (canvas_proto.toDataURLHD) {
+						canvas_proto.toBlobHD = function() {
+							to_data_url = "toDataURLHD";
+							let blob = this.toBlob();
+							to_data_url = "toDataURL";
+							return blob;
+						}
+					} else {
+						canvas_proto.toBlobHD = canvas_proto.toBlob;
+					}
+				}
+			}(typeof self !== "undefined" && self || typeof window !== "undefined" && window || this.content || this));
+		</script>
+		<script type="text/javascript" src="./bwip-js_files/fontLoader.js"></script>
+		<script type="text/javascript" src="./bwip-js_files/drawing-svg.js"></script>
+		<script type="text/javascript">
+			document.gbID = document.getElementById;
+			let triggerDownload = (imgURI, fileName) => {
+				let a = document.createElement('a')
+				a.setAttribute('download', fileName);
+				a.setAttribute('href', imgURI);
+				a.click()
+			}
+			
+			window.addEventListener('load', function() { 
+				// Set up the select list of barcode types
+				let sel = document.gbID('symbol'), opts = Object.entries(symdesc);
+				opts.sort(function(a, b) { return a[1] < b[1] ? -1 : 1 });
+				for (const opt of opts) {
+					sel.appendChild(Object.assign(document.createElement('option') , { 'textContent': opt[1], 'value': opt[0], }));
+				}
+
+				sel.addEventListener('change', function(ev) {
+					document.gbID('saveas').style.visibility = 'hidden';
+				});
+				
+				let evt = document.createEvent("HTMLEvents");
+				evt.initEvent("change", false, true);
+				sel.dispatchEvent(evt);
+
+				function dTh(val){ return (val).toString(16).padStart(2, '0'); }
+				
+				document.gbID('scaleX').addEventListener('change', function(ev) { document.gbID('scaleY').value = ev.target.value; });
+				document.gbID('render').addEventListener('click', render);
+				document.gbID('autoBarcodeColor').addEventListener('click', function(ev) {
+					ev.target.disabled = true;
+
+					setTimeout(()=>{
+						let ts0 = performance.now();
+
+						// Goal: Calculate color with min L ratio of 7
+						let bgC = document.gbID('bgcolor').value.substr(1);
+						let bgL = getL(bgC);
+						const min_L_ratio = 6, AAA_ratio = 7;
+
+						let fgCElement = document.gbID('fgcolor');
+
+						let possible_rgbs = [];
+						const step = 4;
+
+						// Brute force is the easiest understandable solution towards finding the fg color
+						// Number of iterations: (int(255/step))^3
+						// At step = 4, search space is computable in ~300ms. 
+						for (let r = 0; r <= 255; r += step){
+							for (let g = 0; g <= 255; g += step){
+								for (let b = 0; b <= 255; b += step){
+									const fgC = `${dTh(r)}${dTh(g)}${dTh(b)}`;
+									const fgL = getL(fgC);
+									const LRatio = (Math.max(fgL, bgL) + 0.05) / (Math.min(fgL, bgL) + 0.05);
+									if (LRatio >= min_L_ratio) {
+										possible_rgbs.push([fgC, LRatio]);
+									}
+								}
+							}
+						}
+
+						if (possible_rgbs.filter(e=>e[1] > AAA_ratio).length > 0){
+							writeToLog("Using guessed AAA-compliant color that achieves minimum luminance contrast ratio");
+							let AAA = possible_rgbs.filter(e=>e[1] > AAA_ratio).sort((a,b)=>((a[1] > b[1]) ? 1 : ((b[1] > a[1]) ? -1 : 0)));
+							fgCElement.value = `#${AAA[0][0]}`;
+						} else if (possible_rgbs.length > 0) {
+							writeToLog("Unable to find AAA-compliant color - Using colors with minimum LCR >= 6");
+							possible_rgbs.sort((a,b)=>((a[1] > b[1]) ? 1 : ((b[1] > a[1]) ? -1 : 0)));
+							fgCElement.value = `#${possible_rgbs[0][0]}`;
+						} else {
+							writeToLog("Unable to find AAA-compliant color - Defaulting to black/white");
+							fgCElement.value = `#${calculateLRatio('000000', bgC) > calculateLRatio('FFFFFF', bgC) ? '000000' : 'FFFFFF'}`;
+						}
+
+						writeToLog(`Computed fg color guess in ${ (performance.now() - ts0).toFixed(3) } ms`);
+						ev.target.disabled = false;
+
+						render();
+
+					}, 0);
+				});
+				document.gbID('fontLoadForm').addEventListener('submit', async function (ev) {
+					ev.preventDefault();
+					try {
+						const fontname = document.gbID('fontname').value;
+						if ([...document.gbID('barcodeTextFontType').options].some(e=>e.textContent.toUpperCase()===fontname.toUpperCase() || e.value.toUpperCase()===fontname.toUpperCase())){
+							writeToLog("Cannot load font - font name has already been used.");
+						} else {
+							const buffer = await document.gbID('fontfile').files[0].arrayBuffer();
+							window.bwipjs.loadFont(fontname, buffer);
+
+							let fontOptions = document.getElementById('barcodeTextFontType');
+
+							fontOptions.append(Object.assign(document.createElement('option'), {
+								value: fontname,
+								textContent: fontname,
+							}));
+							writeToLog(`Font '${fontname}' loaded.`);
+						}
+					} catch (e) {
+						// Watch for BWIPP generated raiseerror's.
+						let msg = ('' + e).trim();
+						if (msg.indexOf("bwipp.") >= 0) {
+							window.writeToLog(msg);
+						} else if (e.stack) {
+							// GC includes the message in the stack.  FF does not.
+							window.writeToLog((e.stack.indexOf(msg) == -1 ? msg + '\n' : '') + e.stack);
+						} else {
+							window.writeToLog(msg);
+						}
+					}
+				});
+				document.gbID('saveas').style.visibility = 'hidden';
+
+				// Allow Enter to render
+				document.gbID('params').addEventListener('keypress', function(ev) { if (ev.which == 13) { render(); ev.stopPropagation(); ev.preventDefault(); return false; } });
+
+				document.gbID('versions').textContent = 'bwip-js ' + bwipjs.BWIPJS_VERSION + ' / BWIPP ' + bwipjs.BWIPP_VERSION;
+
+				document.addEventListener('change', function(ev){ 
+					if(['symtext', 'symaltx'].includes(ev.target.id)) return false;
+					render(); 
+				});
+				document.gbID('symtext').addEventListener('input', function (ev) { render(); ev.stopPropagation(); ev.preventDefault(); return false; });
+				document.gbID('symaltx').addEventListener('input', function (ev) { render(); ev.stopPropagation(); ev.preventDefault(); return false; });
+
+				window.fontLoaderLoop = setInterval(window.fontLoader, 100);
+				window.savedDataLoader = setInterval(function() {
+					if(window.fontLoadComplete === true){
+						let element = document.gbID("symtext");
+
+					    function pasteIntoInput(el, text) {
+					        el.focus();
+					        if (typeof el.selectionStart == "number" && typeof el.selectionEnd == "number") {
+					            let val = el.value, selStart = el.selectionStart;
+					            el.value = val.slice(0, selStart) + text + val.slice(el.selectionEnd);
+					            el.selectionEnd = el.selectionStart = selStart + text.length;
+					        } else if (typeof document.selection != "undefined") {
+					            let textRange = document.selection.createRange();
+					            textRange.text = text;
+					            textRange.collapse(false);
+					            textRange.select();
+					        }
+					    }
+
+					    function handleEnter(evt) {
+					        let insert = ({13: '\n', 9: '\t'})[evt.keyCode];
+					        if (insert !== undefined){ pasteIntoInput(evt.target, insert); evt.preventDefault(); }
+					    }
+					    element = document.gbID("symtext");
+					    // Handle both keydown and keypress for Opera, which only allows default
+					    // key action to be suppressed in keypress
+					    element.addEventListener('keydown', handleEnter);
+					    element.addEventListener('keypress', handleEnter);
+
+
+						var saved;
+						try { saved = JSON.parse(localStorage.getItem('bwipjsLastSettings')); } catch (e) { console.error(e); }
+
+					    if (saved) {
+							if (saved.symbol) { sel.value = saved.symbol; } else { sel.selectedIndex = 89; }
+							if (saved.text) { document.gbID('symtext').value = saved.text; }
+							if (saved.alttext) { document.gbID('symaltx').value = saved.alttext; }
+							if (saved.scaleX && saved.scaleY) { document.gbID('scaleX').value = saved.scaleX; document.gbID('scaleY').value = saved.scaleY; }
+							if (saved.rotate) { document.gbID('rotate' + saved.rotate).checked = true; }
+							if (saved.fontType) { document.gbID('barcodeTextFontType').value = saved.fontType; }
+							if (saved.fontSize) { document.gbID('textSize').value = saved.fontSize; }
+							if (saved.includeCheck) { document.gbID('includeCheck').checked = saved.includeCheck; }
+							if (saved.includeText) { document.gbID('includeText').checked = saved.includeText; }
+							if (saved.includeCheckInText) { document.gbID('includeCheckInText').checked = saved.includeCheckInText; }
+							if (saved.miscOptions) { document.gbID('symopts').value = saved.miscOptions; }
+							if (saved.SVGRenderWithOnlyIntegers) { document.gbID('SVGRenderWithOnlyIntegers').checked = saved.SVGRenderWithOnlyIntegers; }
+							if (saved.padding) { document.gbID('padding').value = saved.padding; }
+
+							if (saved.fgColor) { document.gbID('fgcolor').value = `#${saved.fgColor}`; }
+							if (saved.bgColor) { document.gbID('bgcolor').value = `#${saved.bgColor}`; }
+							if (saved.transparentBG) {  document.gbID('transparentBG').checked = saved.transparentBG; }
+						}
+
+					    try {
+					    	if(saved) render();
+					    } catch (e) {
+					    	writeToLog("Unable to render saved barcode params");
+					    	console.error(e);
+					    }
+					    clearInterval(window.savedDataLoader);
+					    writeToLog("Cleared saved data loader loop");
+					} else { writeToLog("Fonts not loaded in yet - Relooping"); }
+				}, 200);
+			});
+
+			function render() {
+				let settings = {
+					symbol: document.gbID('symbol').value,
+					text: document.gbID('symtext').value.trim(),
+					alttext: document.gbID('symaltx').value.trim(),
+					rotate: document.querySelector('input[name="rotate"]:checked').value,
+					scaleX: +document.gbID('scaleX').value || 2,
+					scaleY: +document.gbID('scaleY').value || 2,
+					fontType: document.gbID('barcodeTextFontType').value,
+					fontSize: document.gbID('textSize').value,
+					includeCheck: document.gbID('includeCheck').checked,
+					includeText: document.gbID('includeText').checked,
+					includeCheckInText: document.gbID('includeCheckInText').checked,
+					miscOptions: document.gbID('symopts').value.trim(),
+					SVGRenderWithOnlyIntegers: document.gbID('SVGRenderWithOnlyIntegers').checked,
+					fgColor: document.gbID('fgcolor').value.substr(1),
+					bgColor: document.gbID('bgcolor').value.substr(1),
+					transparentBG: document.gbID('transparentBG').checked,
+					padding: document.gbID('padding').value
+				}
+
+				localStorage.setItem('bwipjsLastSettings', JSON.stringify(settings));
+
+				// Clear the page
+				document.gbID('saveas').style.visibility = 'hidden';
+				document.gbID('svgTarget').innerHTML = '';
+				document.gbID('svgTarget').setAttribute('transparentBG', settings.transparentBG);
+
+				// These opts already exist & will always be present (unless the DOM's been tampered)
+				let mandated_flags = {
+					'text': settings.text,
+					'alttext': settings.alttext,
+					'bcid': settings.symbol,
+					'scaleX': settings.scaleX,
+					'scaleY': settings.scaleY,
+					'rotate': settings.rotate,
+					'textfont': settings.fontType,
+					'textsize': settings.fontSize,
+					'barcolor': settings.fgColor,
+					'textcolor': settings.fgColor,
+					'padding': settings.padding,
+
+					...(!settings.transparentBG && {'backgroundcolor': settings.bgColor}),
+					...(settings.includeCheck && {'includecheck': settings.includeCheck}),
+					...(settings.includeText && {'includetext': settings.includeText}),
+					...(settings.includeCheckInText && {'includecheckintext': settings.includeCheckInText}),
+				}
+
+				// Convert the misc options to an object.
+				let miscOpts = {};
+				for (const opt of settings.miscOptions.split(/\s+/)) {
+					let parts = opt.split('=');
+					if (parts[0] === 'backgroundcolor') continue;
+					if (parts[0] === 'includecheck') continue;
+					if (parts[0] === 'includetext') continue;
+					if (parts[0] === 'includecheckintext') continue;
+
+					if (parts.length == 1) {
+						miscOpts[parts[0]] = true;
+					} else {
+						miscOpts[parts[0]] = parts[1];
+					}
+				}
+
+				const opts = {...miscOpts, ...mandated_flags};
+
+				// Draw the bar code to the canvas
+				try {
+					let ts0 = performance.now();
+					let clonedOpts = Object.assign({}, opts);
+					let svgResult = bwipjs.render(clonedOpts, window.DrawingSVG(clonedOpts, window.bwipjs.FontLib, settings.SVGRenderWithOnlyIntegers));
+					document.gbID('svgTarget').innerHTML = svgResult;
+
+					let LRatio = calculateLRatio(settings.fgColor, settings.bgColor);
+					document.gbID('LRatio').textContent = LRatio.toFixed(3);
+					document.gbID('AAThin').textContent = (LRatio >= 4.5) ? "Pass" : "Fail";
+					document.gbID('AAThick').textContent = (LRatio >= 3) ? "Pass" : "Fail";
+					document.gbID('AAAThin').textContent = (LRatio >= 7) ? "Pass" : "Fail";
+					document.gbID('AAAThick').textContent = (LRatio >= 4.5) ? "Pass" : "Fail";
+					document.gbID('AAInput').textContent = (LRatio >= 3) ? "Pass" : "Fail";
+
+					document.gbID('AAThin').setAttribute('data-content', (LRatio >= 4.5) ? "pass" : "fail");
+					document.gbID('AAThick').setAttribute('data-content', (LRatio >= 3) ? "pass" : "fail");
+					document.gbID('AAAThin').setAttribute('data-content', (LRatio >= 7) ? "pass" : "fail");
+					document.gbID('AAAThick').setAttribute('data-content', (LRatio >= 4.5) ? "pass" : "fail");
+					document.gbID('AAInput').setAttribute('data-content', (LRatio >= 3) ? "pass" : "fail");
+
+					show(ts0, performance.now(), opts);
+				} catch (e) {
+					// Watch for BWIPP generated raiseerror's.
+					let msg = ('' + e).trim();
+					if (msg.indexOf("bwipp.") >= 0) {
+						window.writeToLog(msg);
+					} else if (e.stack) {
+						// GC includes the message in the stack.  FF does not.
+						window.writeToLog((e.stack.indexOf(msg) == -1 ? msg + '\n' : '') + e.stack);
+					} else {
+						window.writeToLog(msg);
+					}
+					throw e;
+				}
+
+				function show(ts0, ts1, opts) {
+					setURL(opts);
+					window.writeToLog(`Barcode rendered in ${(ts1 - ts0).toFixed(3)} msecs`);
+					document.gbID('saveas').style.visibility = 'visible';
+					saveCanvas.basename = opts.bcid + '-' + opts.text.replace(/[^a-zA-Z0-9._]+/g, '-');
+				}
+			}
+
+			const getsRGB = c => (x=>((x <= 0.03928) ? x / 12.92 : Math.pow(((x + 0.055) / 1.055), 2.4)))(parseInt(c, 16) / 255);
+			const getL = c => (0.2126 * getsRGB(c[0]+c[1]) + 0.7152 * getsRGB(c[2]+c[3]) + 0.0722 * getsRGB(c[4]+c[5]));
+			const calculateLRatio = (fg, bg) => ((fgl, bgl)=>(Math.max(fgl, bgl) + 0.05) / (Math.min(fgl, bgl) + 0.05))(getL(fg), getL(bg));
+
+			function saveCanvas(type, ext) {
+				let barcodeSVG = document.gbID('svgTarget').firstChild.cloneNode(true);
+	            // if(id("transparent").checked) avatar.getElementById("background-color").style.opacity = 0;
+
+	            let svgBlob = new Blob([(new XMLSerializer()).serializeToString(barcodeSVG)], {type: 'image/svg+xml;charset=utf-8'});
+	  			let img = new Image();
+	            img.onload = ()=>{ 
+	            	let canvas = document.createElement("canvas");
+	                canvas.width=barcodeSVG.width.baseVal.value; canvas.height=barcodeSVG.height.baseVal.value;
+	                let ctx = canvas.getContext("2d"); ctx.drawImage(img, 0, 0);
+	                triggerDownload(canvas.toDataURL(type), saveCanvas.basename + ext);
+	            };
+	            img.setAttribute("src", URL.createObjectURL(svgBlob));
+			}
+			
+			function saveSVG() {
+				triggerDownload(URL.createObjectURL(new Blob([document.gbID('svgTarget').innerHTML], {type: "image/svg+xml"})), saveCanvas.basename + '.svg');
+			}
+			
+
+			function setURL(opts) {
+				let args = [];
+				const singles = ['includecheck', 'includetext', 'includecheckintext'];
+				const URIEncodingRequired = ['text', 'alttext'];
+				for (const [key, value] of Object.entries(opts)) {
+					if (key === 'bcid') continue;
+					if (singles.includes(key)){
+						if(value){ args.push(key); }
+					} else {
+						args.push(`${key}=${URIEncodingRequired.includes(key) ? encodeURIComponent(value) : value}`);
+					}
+				}
+				document.gbID('apiurl').href = `https://bwipjs-api.metafloor.com/?bcid=${opts['bcid']}&${args.join('&')}`;
+			}
+			
+			window.writeToLog = (text)=>{
+				let log = document.gbID('logArea')
+				log.append(
+					Object.assign(document.createElement('span'), {textContent: `${(new Date()).toLocaleTimeString('en-US', { hour12: false })} - ${text}`}),
+					document.createElement('br')
+				)
+				log.scrollTo(0, log.scrollHeight);
+			};
+
+		</script>
+	</head>
+
+	<body>
+		<div id="header"> <div id="bwip-js">bwip-js // Barcode Writer in Pure JavaScript</div> <div id="versions">bwip-js 3.0.4 (2021-08-05) / BWIPP 2021-02-06</div> </div>
+		<div id="params">
+			<table border="0" cellpading="0" cellspacing="0">
+				<tbody>
+					<tr>
+						<td style="vertical-align:top;">
+							<table border="0" cellpading="0" cellspacing="0" id="mainparams">
+								<tbody>
+									<tr>
+										<th>Barcode Type:</th>
+										<td colspan="7"><select id="symbol"></select></td>
+									</tr>
+									<tr>
+										<th>Bar Text:</th>
+										<td colspan="7"><textarea id="symtext" type="text"></textarea></td>
+									</tr>
+									<tr>
+										<th>Alt Text:</th>
+										<td colspan="7"><input id="symaltx" type="text"></td>
+									</tr>
+									<tr>
+										<th>Font Type:</th>
+										<td>
+											<select id="barcodeTextFontType">
+											</select>
+										</td>
+										<th>Font Size:</th>
+										<td><input id="textSize" type="number" value="10" min="1"></td>
+										<th>Padding:</th>
+										<td><input type="number" id="padding" value="1" min="0" step="1" max="10"></td>
+									</tr>
+									<tr>
+										<th>Barcode & Text color:</th>
+										<td><input type="color" id="fgcolor" value="#000000" /></td>
+										<th>Background color:</th>
+										<td><input type="color" id="bgcolor" value="#ffffff" /></td>
+										<th colspan="2"><label for="transparentBG">Generate with transparent background:</label></th>
+										<td><input type="checkbox" name="transparentBG" id="transparentBG" /></td>
+									</tr>
+									<tr>
+										<th><label for="includeCheck">Include check:</label></th>
+										<td><input type="checkbox" name="includeCheck" id="includeCheck" /></td>
+										<th><label for="includeText">Include text:</label></th>
+										<td><input type="checkbox" name="includeText" id="includeText" /></td>
+										<th colspan="2"><label for="includeCheckInText">Include check in text:</label></th>
+										<td><input type="checkbox" name="includeCheckInText" id="includeCheckInText" /></td>
+									</tr>
+									<tr>
+										<th>Options:</th>
+										<td colspan="7"><textarea id="symopts" type="text"></textarea></td>
+									</tr>
+									<tr>
+										<td></td>
+										<td colspan="7">
+											<div id="saveas" style="visibility: hidden;">
+												<a class="saveas" href="javascript:saveSVG()">Save As SVG</a>
+												&nbsp;&nbsp;
+												<a class="saveas" href="javascript:saveCanvas('image/png','.png')">Save As PNG</a>
+												&nbsp;&nbsp;
+												<a class="saveas" href="javascript:saveCanvas('image/jpeg','.jpg')">Save As JPEG</a>
+												&nbsp;&nbsp;
+												<a class="saveas" id="apiurl" href="">Goto URL</a>
+												&nbsp;&nbsp;
+											</div>
+										</td>
+									</tr>
+									<tr>
+										<td colspan="8">
+											<div id="content">
+												<div id="svgTarget"></div>
+											</div>
+										</td>
+								</tbody>
+							</table>
+						</td>
+						<td style="vertical-align:top;">
+							<table border="0" cellpading="0" cellspacing="5">
+								<tbody>
+									<tr>
+										<th>Scale X,Y:</th>
+										<td>
+											<input type="number" min="1" max="9" step="1" id="scaleX" value="2">
+											<input type="number" min="1" max="9" step="1" id="scaleY" value="2">
+										</td>
+									</tr>
+									<tr>
+										<th>Image Rotation:</th>
+										<td>
+											<label for="rotateN"><input type="radio" name="rotate" value="N" id="rotateN" checked="">Normal</label>
+											<label for="rotateR"><input type="radio" name="rotate" value="R" id="rotateR">Right</label>
+											<label for="rotateL"><input type="radio" name="rotate" value="L" id="rotateL">Left</label>
+											<label for="rotateI"><input type="radio" name="rotate" value="I" id="rotateI">Invert</label>
+										</td>
+									</tr>
+									<tr>
+										<th><label for="SVGRenderWithOnlyIntegers">Sharpen text:</label></th>
+										<td><input type="checkbox" name="SVGRenderWithOnlyIntegers" id="SVGRenderWithOnlyIntegers"></td>
+									</tr>
+									<tr>
+										<td></td>
+										<td>
+											<button style="margin-top:1ex" id="render" disabled>Show Barcode</button>
+											<button style="margin-top:1ex" id="autoBarcodeColor" >Auto-select AAA Barcode Color</button>
+											<button style="margin-top:1ex" onclick="(()=>{document.gbID('logArea').textContent = '';})()">Clear Log</button>
+										</td>
+									</tr>
+									<tr>
+										<th>WCAG 2.0 Compliance:</th>
+										<td class="borderify">
+											<span>Luminance Ratio: 	<span id="LRatio">(uncalculated)</span></span><br />
+											<table>
+												<tbody>
+													<tr>
+														<td style="padding-right: 1em;">
+															<span>AA Thin Text: 	<span class="passFail" id="AAThin">(uncalculated)</span></span><br />
+														</td>
+														<td style="padding-right: 1em;">
+															<span>AA Thick Text: 	<span class="passFail" id="AAThick">(uncalculated)</span></span><br />
+														</td>
+														<td>
+															<span>AA Input: 		<span class="passFail" id="AAInput">(uncalculated)</span></span><br />
+														</td>
+													</tr>
+													<tr>
+														<td style="padding-right: 1em;">
+															<span>AAA Thin Text: 	<span class="passFail" id="AAAThin">(uncalculated)</span></span><br />
+														</td>
+														<td>
+															<span>AAA Thick Text: 	<span class="passFail" id="AAAThick">(uncalculated)</span></span><br />
+														</td>
+													</tr>
+													<tr>
+													</tr>
+												</tbody>
+											</table>
+										</td>
+									</tr>
+									<tr>
+										<th>Font Loader:</th>
+										<td class="borderify">
+											<form id="fontLoadForm">
+												<span>File (.ttf & .otf only): <input type="file" id="fontfile" name="fontfile" accept=".otf,.ttf" required></span> <br><br>
+												<span>Font Name: <input type="text" id="fontname" name="fontname" minlength="3" required></span> <br><br>
+												<button type="submit">Load Font File</button>
+											</form>
+										</td>
+									</tr>
+
+									<tr>
+										<th style="vertical-align: unset;">Log:</th>
+										<td class="borderify"><div id='logArea'></div></td>
+									</tr>
+								</tbody>
+							</table>
+						</td>
+					</tr>
+					<tr> <td> <br> </td> </tr>
+				</tbody>
+			</table>
+		</div>
+	</body>
+	<style id="stylus-23" type="text/css" class="stylus">
+		/** { outline: 1px solid blue; }*/
+
+		#symtext, #symopts { min-height: 5em; width: 50vw; }
+		#symbol, #symaltx { width: 30em; }
+		
+		/* bwip-js : lib/demo.css */
+		body { font: 11pt "Lucida Grande",Calibri,Helvetica,Arial,sans-serif; margin: 0; }
+		#header {
+			background-color:	#212121;
+			color:				#fff;
+			height:				48px;
+			padding: 1em 0 1em 1em;
+		}
+		#header #bwip-js  { font-size: 25px; font-weight: bold; }
+		#header #versions { font-size: 10px; font-weight: 100; color: #a7a7a7; }
+		#header > * { max-width: calc(100% - 2em); }
+		input, select, label, button { font: 10.5pt Verdana, Arial, san-serif; }
+		#symbol, #symtext, #symaltx, #symopts, #scaleX, #scaleY {
+			padding:			.5ex;
+			box-sizing:			border-box;
+			border:				1px solid #999;
+			border-radius:		4px;
+		}
+		#params, #content { margin-left: 20px; margin-top: 10px; }
+		#params > table { max-width: calc(100% - 20px); }
+		#params th { text-align: right; padding-right: 1ex; max-width: 6em; }
+		#params th > label { font-size: 11pt; font-weight: 700; font-family: "Lucida Grande",Calibri,Helvetica,Arial,sans-serif; }
+		#mainparams td:not([colspan]) { max-width: 10em; }
+		#textSize { max-width: 5em; }
+		button { padding: .5ex 1ex; min-width: 18ex; }
+		#LRatio { font-weight: bold; }
+		span.passFail { font-weight: bold; }
+		span.passFail[data-content='pass'] { color: darkgreen; }
+		span.passFail[data-content='fail'] { color: darkred; }
+
+		div#svgTarget { width: fit-content; }
+		div#svgTarget[transparentbg='true'] {
+			background:  repeating-conic-gradient(#808080 0% 25%, transparent 0% 50%) 50% / 20px 20px;
+		}
+
+		.borderify {
+			padding: 0.5em; 
+			border: 1px solid black;
+		}
+
+
+		#logArea {
+			min-height: 		2em;
+			max-height: 		10em;
+			border: 			1px solid black;
+			padding: 			0.3em;
+			white-space:		pre-wrap;
+			overflow-y: scroll;
+			word-break: break-word;
+			word-wrap: break-word;
+		}
+	</style>
+</html>
