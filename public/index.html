@@ -10,6 +10,7 @@
 		<link rel="preload" href="./bwip-js_files/bwip-js-min.js" as="script" />
 		<link rel="preload" href="./bwip-js_files/fontLoader.js" as="script" />
 		<link rel="preload" href="./bwip-js_files/drawing-svg.js" as="script" />
+		<link rel="preload" href="./bwip-js_files/barcodeTypeOptions.js" as="script" />
 
 		<script type="text/javascript" src="./bwip-js_files/bwip-js-min.js"></script>
 		<script type="text/javascript">
@@ -132,295 +133,90 @@
 				"hibccodablockf":					"HIBC Codablock F",
 				"hibcazteccode":					"HIBC Aztec Code"
 			};
-
-			(function(view) {
-				"use strict";
-				var Uint8Array = view.Uint8Array, HTMLCanvasElement = view.HTMLCanvasElement, canvas_proto = HTMLCanvasElement && HTMLCanvasElement.prototype
-					, to_data_url = "toDataURL", base64_ranks
-					, decode_base64 = function(base64) {
-						let len = base64.length, buffer = new Uint8Array(len / 4 * 3 | 0), i = 0, outptr = 0, last = [0, 0], state = 0, save = 0;
-						while (len--) {
-							let code = base64.charCodeAt(i++), rank = base64_ranks[code-43];
-							if (rank !== 255 && rank !== undefined) {
-								last[1] = last[0]; last[0] = code;
-								save = (save << 6) | rank;
-								if (++state % 4 === 0) {
-									buffer[outptr++] = save >>> 16;
-									if (last[1] !== 61 /* padding character */) buffer[outptr++] = save >>> 8;
-									if (last[0] !== 61 /* padding character */) buffer[outptr++] = save;
-								}
-							}
-						}
-						// 2/3 chance there's going to be some null bytes at the end, but that
-						// doesn't really matter with most image formats.
-						// If it somehow matters for you, truncate the buffer up outptr.
-						return buffer;
-					};
-				if (Uint8Array) {
-					base64_ranks = ((m, r)=>new Uint8Array([62, ...m, 63, ...r(52, 61), ...m, 0, ...m, ...r(0, 25), ...m, ...m, ...r(26, 51)]))( [255,255,255], function*(s, e){ while(s <= e){ yield s; s++; } } );
-					// console.log(base64_ranks.reduce((a,b)=>a+b), base64_ranks.reduce((a,b)=>a^b));
-				}
-				if (HTMLCanvasElement && !canvas_proto.toBlob) {
-					canvas_proto.toBlob = function(callback, type /*, ...args*/) {
-						if (!type) type = "image/png";
-						if (this.mozGetAsFile) {
-							callback(this.mozGetAsFile("canvas", type)); return;
-						} 
-						if (this.msToBlob && /^\s*image\/png\s*(?:$|;)/i.test(type)) {
-							callback(this.msToBlob()); return;
-						}
-
-						var dataURI = this[to_data_url].apply(this, Array.prototype.slice.call(arguments, 1)), header_end = dataURI.indexOf(",")
-							, data = dataURI.substring(header_end + 1), is_base64 = is_base64_regex.test(dataURI.substring(0, header_end)), blob;
-						if (Blob.fake) {
-							// no reason to decode a data: URI that's just going to become a data URI again
-							blob = new Blob();
-							blob.encoding = (is_base64) ? "base64" : "URI";
-							blob.data = data;
-							blob.size = data.length;
-						} else if (Uint8Array) {
-							if (is_base64) {
-								blob = new Blob([decode_base64(data)], {type: type});
-							} else {
-								blob = new Blob([decodeURIComponent(data)], {type: type});
-							}
-						}
-						callback(blob);
-					};
-
-					if (canvas_proto.toDataURLHD) {
-						canvas_proto.toBlobHD = function() {
-							to_data_url = "toDataURLHD";
-							let blob = this.toBlob();
-							to_data_url = "toDataURL";
-							return blob;
-						}
-					} else {
-						canvas_proto.toBlobHD = canvas_proto.toBlob;
-					}
-				}
-			}(typeof self !== "undefined" && self || typeof window !== "undefined" && window || this.content || this));
 		</script>
 		<script type="text/javascript" src="./bwip-js_files/fontLoader.js"></script>
 		<script type="text/javascript" src="./bwip-js_files/drawing-svg.js"></script>
+		<script type="text/javascript" src="./bwip-js_files/barcodeTypeOptions.js"></script>
 		<script type="text/javascript">
-			document.gbID = document.getElementById;
+			const gbID =(x)=>document.getElementById(x);
 			let triggerDownload = (imgURI, fileName) => {
-				let a = document.createElement('a')
-				a.setAttribute('download', fileName);
-				a.setAttribute('href', imgURI);
-				a.click()
+				(a=>{a.click()})(Object.assign(document.createElement('a'), { 'download': fileName, 'href': imgURI }))
+			}
+
+			const getsRGB = c => (x=>((x <= 0.03928) ? x / 12.92 : Math.pow(((x + 0.055) / 1.055), 2.4)))(parseInt(c, 16) / 255);
+			const getL = c => (0.2126 * getsRGB(c[0]+c[1]) + 0.7152 * getsRGB(c[2]+c[3]) + 0.0722 * getsRGB(c[4]+c[5]));
+			const getLRatio = (fg, bg) => ((fgl, bgl)=>(Math.max(fgl, bgl) + 0.05) / (Math.min(fgl, bgl) + 0.05))(getL(fg), getL(bg));
+
+			function saveCanvas(type, ext) {
+				let barcodeSVG = gbID('svgTarget').firstElementChild.cloneNode(true);
+	            // if(id("transparent").checked) avatar.getElementById("background-color").style.opacity = 0;
+
+	            let svgBlob = new Blob([(new XMLSerializer()).serializeToString(barcodeSVG)], {type: 'image/svg+xml;charset=utf-8'});
+	  			let img = new Image();
+	            img.onload = ()=>{ 
+	            	let canvas = document.createElement("canvas");
+	                canvas.width=barcodeSVG.width.baseVal.value; canvas.height=barcodeSVG.height.baseVal.value;
+	                let ctx = canvas.getContext("2d"); ctx.drawImage(img, 0, 0);
+	                triggerDownload(canvas.toDataURL(type), saveCanvas.basename + ext);
+	            };
+	            img.setAttribute("src", URL.createObjectURL(svgBlob));
 			}
 			
-			window.addEventListener('load', function() { 
-				// Set up the select list of barcode types
-				let sel = document.gbID('symbol'), opts = Object.entries(symdesc);
-				opts.sort(function(a, b) { return a[1] < b[1] ? -1 : 1 });
-				for (const opt of opts) {
-					sel.appendChild(Object.assign(document.createElement('option') , { 'textContent': opt[1], 'value': opt[0], }));
-				}
+			function saveSVG() {
+				triggerDownload(URL.createObjectURL(new Blob([gbID('svgTarget').innerHTML], {type: "image/svg+xml"})), `${saveCanvas.basename}.svg`);
+			}
+			
 
-				sel.addEventListener('change', function(ev) {
-					document.gbID('saveas').style.visibility = 'hidden';
-				});
-				
-				let evt = document.createEvent("HTMLEvents");
-				evt.initEvent("change", false, true);
-				sel.dispatchEvent(evt);
-
-				function dTh(val){ return (val).toString(16).padStart(2, '0'); }
-				
-				document.gbID('scaleX').addEventListener('change', function(ev) { document.gbID('scaleY').value = ev.target.value; });
-				document.gbID('render').addEventListener('click', render);
-				document.gbID('autoBarcodeColor').addEventListener('click', function(ev) {
-					ev.target.disabled = true;
-
-					setTimeout(()=>{
-						let ts0 = performance.now();
-
-						// Goal: Calculate color with min L ratio of 7
-						let bgC = document.gbID('bgcolor').value.substr(1);
-						let bgL = getL(bgC);
-						const min_L_ratio = 6, AAA_ratio = 7;
-
-						let fgCElement = document.gbID('fgcolor');
-
-						let possible_rgbs = [];
-						const step = 4;
-
-						// Brute force is the easiest understandable solution towards finding the fg color
-						// Number of iterations: (int(255/step))^3
-						// At step = 4, search space is computable in ~300ms. 
-						for (let r = 0; r <= 255; r += step){
-							for (let g = 0; g <= 255; g += step){
-								for (let b = 0; b <= 255; b += step){
-									const fgC = `${dTh(r)}${dTh(g)}${dTh(b)}`;
-									const fgL = getL(fgC);
-									const LRatio = (Math.max(fgL, bgL) + 0.05) / (Math.min(fgL, bgL) + 0.05);
-									if (LRatio >= min_L_ratio) {
-										possible_rgbs.push([fgC, LRatio]);
-									}
-								}
-							}
-						}
-
-						if (possible_rgbs.filter(e=>e[1] > AAA_ratio).length > 0){
-							writeToLog("Using guessed AAA-compliant color that achieves minimum luminance contrast ratio");
-							let AAA = possible_rgbs.filter(e=>e[1] > AAA_ratio).sort((a,b)=>((a[1] > b[1]) ? 1 : ((b[1] > a[1]) ? -1 : 0)));
-							fgCElement.value = `#${AAA[0][0]}`;
-						} else if (possible_rgbs.length > 0) {
-							writeToLog("Unable to find AAA-compliant color - Using colors with minimum LCR >= 6");
-							possible_rgbs.sort((a,b)=>((a[1] > b[1]) ? 1 : ((b[1] > a[1]) ? -1 : 0)));
-							fgCElement.value = `#${possible_rgbs[0][0]}`;
-						} else {
-							writeToLog("Unable to find AAA-compliant color - Defaulting to black/white");
-							fgCElement.value = `#${calculateLRatio('000000', bgC) > calculateLRatio('FFFFFF', bgC) ? '000000' : 'FFFFFF'}`;
-						}
-
-						writeToLog(`Computed fg color guess in ${ (performance.now() - ts0).toFixed(3) } ms`);
-						ev.target.disabled = false;
-
-						render();
-
-					}, 0);
-				});
-				document.gbID('fontLoadForm').addEventListener('submit', async function (ev) {
-					ev.preventDefault();
-					try {
-						const fontname = document.gbID('fontname').value;
-						if ([...document.gbID('barcodeTextFontType').options].some(e=>e.textContent.toUpperCase()===fontname.toUpperCase() || e.value.toUpperCase()===fontname.toUpperCase())){
-							writeToLog("Cannot load font - font name has already been used.");
-						} else {
-							const buffer = await document.gbID('fontfile').files[0].arrayBuffer();
-							window.bwipjs.loadFont(fontname, buffer);
-
-							let fontOptions = document.getElementById('barcodeTextFontType');
-
-							fontOptions.append(Object.assign(document.createElement('option'), {
-								value: fontname,
-								textContent: fontname,
-							}));
-							writeToLog(`Font '${fontname}' loaded.`);
-						}
-					} catch (e) {
-						// Watch for BWIPP generated raiseerror's.
-						let msg = ('' + e).trim();
-						if (msg.indexOf("bwipp.") >= 0) {
-							window.writeToLog(msg);
-						} else if (e.stack) {
-							// GC includes the message in the stack.  FF does not.
-							window.writeToLog((e.stack.indexOf(msg) == -1 ? msg + '\n' : '') + e.stack);
-						} else {
-							window.writeToLog(msg);
-						}
+			function setURL(opts) {
+				let args = [];
+				for (const [key, value] of Object.entries(opts)) {
+					if (key === 'bcid') continue;
+					if (['includecheck', 'includetext', 'includecheckintext'].includes(key)){
+						if(value){ args.push(key); }
+					} else {
+						args.push(`${key}=${['text', 'alttext'].includes(key) ? encodeURIComponent(value) : value}`);
 					}
-				});
-				document.gbID('saveas').style.visibility = 'hidden';
+				}
+				gbID('apiurl').href = `https://bwipjs-api.metafloor.com/?bcid=${opts['bcid']}&${args.join('&')}`;
+			}
 
-				// Allow Enter to render
-				document.gbID('params').addEventListener('keypress', function(ev) { if (ev.which == 13) { render(); ev.stopPropagation(); ev.preventDefault(); return false; } });
-
-				document.gbID('versions').textContent = 'bwip-js ' + bwipjs.BWIPJS_VERSION + ' / BWIPP ' + bwipjs.BWIPP_VERSION;
-
-				document.addEventListener('change', function(ev){ 
-					if(['symtext', 'symaltx'].includes(ev.target.id)) return false;
-					render(); 
-				});
-				document.gbID('symtext').addEventListener('input', function (ev) { render(); ev.stopPropagation(); ev.preventDefault(); return false; });
-				document.gbID('symaltx').addEventListener('input', function (ev) { render(); ev.stopPropagation(); ev.preventDefault(); return false; });
-
-				window.fontLoaderLoop = setInterval(window.fontLoader, 100);
-				window.savedDataLoader = setInterval(function() {
-					if(window.fontLoadComplete === true){
-						let element = document.gbID("symtext");
-
-					    function pasteIntoInput(el, text) {
-					        el.focus();
-					        if (typeof el.selectionStart == "number" && typeof el.selectionEnd == "number") {
-					            let val = el.value, selStart = el.selectionStart;
-					            el.value = val.slice(0, selStart) + text + val.slice(el.selectionEnd);
-					            el.selectionEnd = el.selectionStart = selStart + text.length;
-					        } else if (typeof document.selection != "undefined") {
-					            let textRange = document.selection.createRange();
-					            textRange.text = text;
-					            textRange.collapse(false);
-					            textRange.select();
-					        }
-					    }
-
-					    function handleEnter(evt) {
-					        let insert = ({13: '\n', 9: '\t'})[evt.keyCode];
-					        if (insert !== undefined){ pasteIntoInput(evt.target, insert); evt.preventDefault(); }
-					    }
-					    element = document.gbID("symtext");
-					    // Handle both keydown and keypress for Opera, which only allows default
-					    // key action to be suppressed in keypress
-					    element.addEventListener('keydown', handleEnter);
-					    element.addEventListener('keypress', handleEnter);
-
-
-						var saved;
-						try { saved = JSON.parse(localStorage.getItem('bwipjsLastSettings')); } catch (e) { console.error(e); }
-
-					    if (saved) {
-							if (saved.symbol) { sel.value = saved.symbol; } else { sel.selectedIndex = 89; }
-							if (saved.text) { document.gbID('symtext').value = saved.text; }
-							if (saved.alttext) { document.gbID('symaltx').value = saved.alttext; }
-							if (saved.scaleX && saved.scaleY) { document.gbID('scaleX').value = saved.scaleX; document.gbID('scaleY').value = saved.scaleY; }
-							if (saved.rotate) { document.gbID('rotate' + saved.rotate).checked = true; }
-							if (saved.fontType) { document.gbID('barcodeTextFontType').value = saved.fontType; }
-							if (saved.fontSize) { document.gbID('textSize').value = saved.fontSize; }
-							if (saved.includeCheck) { document.gbID('includeCheck').checked = saved.includeCheck; }
-							if (saved.includeText) { document.gbID('includeText').checked = saved.includeText; }
-							if (saved.includeCheckInText) { document.gbID('includeCheckInText').checked = saved.includeCheckInText; }
-							if (saved.miscOptions) { document.gbID('symopts').value = saved.miscOptions; }
-							if (saved.SVGRenderWithOnlyIntegers) { document.gbID('SVGRenderWithOnlyIntegers').checked = saved.SVGRenderWithOnlyIntegers; }
-							if (saved.padding) { document.gbID('padding').value = saved.padding; }
-
-							if (saved.fgColor) { document.gbID('fgcolor').value = `#${saved.fgColor}`; }
-							if (saved.bgColor) { document.gbID('bgcolor').value = `#${saved.bgColor}`; }
-							if (saved.transparentBG) {  document.gbID('transparentBG').checked = saved.transparentBG; }
-						}
-
-					    try {
-					    	if(saved) render();
-					    } catch (e) {
-					    	writeToLog("Unable to render saved barcode params");
-					    	console.error(e);
-					    }
-					    clearInterval(window.savedDataLoader);
-					    writeToLog("Cleared saved data loader loop");
-					} else { writeToLog("Fonts not loaded in yet - Relooping"); }
-				}, 200);
-			});
+			window.writeToLog = (text)=>{
+				let log = gbID('logArea')
+				log.append(
+					Object.assign(document.createElement('span'), {textContent: `${(new Date()).toLocaleTimeString('en-US', { hour12: false })} - ${text}`}),
+					document.createElement('br')
+				)
+				log.scrollTo(0, log.scrollHeight);
+			};
 
 			function render() {
 				let settings = {
-					symbol: document.gbID('symbol').value,
-					text: document.gbID('symtext').value.trim(),
-					alttext: document.gbID('symaltx').value.trim(),
+					symbol: gbID('symbol').value,
+					version: gbID('barcodeTypeOptions').value,
+					text: gbID('symtext').value.trim(),
+					alttext: gbID('symaltx').value.trim(),
 					rotate: document.querySelector('input[name="rotate"]:checked').value,
-					scaleX: +document.gbID('scaleX').value || 2,
-					scaleY: +document.gbID('scaleY').value || 2,
-					fontType: document.gbID('barcodeTextFontType').value,
-					fontSize: document.gbID('textSize').value,
-					includeCheck: document.gbID('includeCheck').checked,
-					includeText: document.gbID('includeText').checked,
-					includeCheckInText: document.gbID('includeCheckInText').checked,
-					miscOptions: document.gbID('symopts').value.trim(),
-					SVGRenderWithOnlyIntegers: document.gbID('SVGRenderWithOnlyIntegers').checked,
-					fgColor: document.gbID('fgcolor').value.substr(1),
-					bgColor: document.gbID('bgcolor').value.substr(1),
-					transparentBG: document.gbID('transparentBG').checked,
-					padding: document.gbID('padding').value
+					scaleX: +gbID('scaleX').value || 2,
+					scaleY: +gbID('scaleY').value || 2,
+					fontType: gbID('barcodeTextFontType').value,
+					fontSize: gbID('textSize').value,
+					includeCheck: gbID('includeCheck').checked,
+					includeText: gbID('includeText').checked,
+					includeCheckInText: gbID('includeCheckInText').checked,
+					miscOptions: gbID('symopts').value.trim(),
+					SVGRenderWithOnlyIntegers: gbID('SVGRenderWithOnlyIntegers').checked,
+					fgColor: gbID('fgcolor').value.substr(1),
+					bgColor: gbID('bgcolor').value.substr(1),
+					transparentBG: gbID('transparentBG').checked,
+					padding: gbID('padding').value
 				}
 
 				localStorage.setItem('bwipjsLastSettings', JSON.stringify(settings));
 
 				// Clear the page
-				document.gbID('saveas').style.visibility = 'hidden';
-				document.gbID('svgTarget').innerHTML = '';
-				document.gbID('svgTarget').setAttribute('transparentBG', settings.transparentBG);
+				gbID('saveas').style.visibility = 'hidden';
+				gbID('svgTarget').innerHTML = '';
+				gbID('svgTarget').setAttribute('transparentBG', settings.transparentBG);
 
 				// These opts already exist & will always be present (unless the DOM's been tampered)
 				let mandated_flags = {
@@ -436,6 +232,10 @@
 					'textcolor': settings.fgColor,
 					'padding': settings.padding,
 
+					...((settings.version !== "(auto)") && {'version': settings.version}),
+					...((document.querySelector('#barcodeTypeOptions option:checked').parentElement.label !== undefined) && {
+						'format': document.querySelector('#barcodeTypeOptions option:checked').parentElement.label.split(": ")[1]
+					}),
 					...(!settings.transparentBG && {'backgroundcolor': settings.bgColor}),
 					...(settings.includeCheck && {'includecheck': settings.includeCheck}),
 					...(settings.includeText && {'includetext': settings.includeText}),
@@ -462,24 +262,19 @@
 
 				// Draw the bar code to the canvas
 				try {
-					let ts0 = performance.now();
+					const ts0 = performance.now();
 					let clonedOpts = Object.assign({}, opts);
-					let svgResult = bwipjs.render(clonedOpts, window.DrawingSVG(clonedOpts, window.bwipjs.FontLib, settings.SVGRenderWithOnlyIntegers));
-					document.gbID('svgTarget').innerHTML = svgResult;
+					const svgResult = bwipjs.render(clonedOpts, window.DrawingSVG(clonedOpts, window.bwipjs.FontLib, settings.SVGRenderWithOnlyIntegers));
+					gbID('svgTarget').innerHTML = svgResult;
 
-					let LRatio = calculateLRatio(settings.fgColor, settings.bgColor);
-					document.gbID('LRatio').textContent = LRatio.toFixed(3);
-					document.gbID('AAThin').textContent = (LRatio >= 4.5) ? "Pass" : "Fail";
-					document.gbID('AAThick').textContent = (LRatio >= 3) ? "Pass" : "Fail";
-					document.gbID('AAAThin').textContent = (LRatio >= 7) ? "Pass" : "Fail";
-					document.gbID('AAAThick').textContent = (LRatio >= 4.5) ? "Pass" : "Fail";
-					document.gbID('AAInput').textContent = (LRatio >= 3) ? "Pass" : "Fail";
+					const LRatio = getLRatio(settings.fgColor, settings.bgColor);
+					gbID('LRatio').textContent = LRatio.toFixed(3);
 
-					document.gbID('AAThin').setAttribute('data-content', (LRatio >= 4.5) ? "pass" : "fail");
-					document.gbID('AAThick').setAttribute('data-content', (LRatio >= 3) ? "pass" : "fail");
-					document.gbID('AAAThin').setAttribute('data-content', (LRatio >= 7) ? "pass" : "fail");
-					document.gbID('AAAThick').setAttribute('data-content', (LRatio >= 4.5) ? "pass" : "fail");
-					document.gbID('AAInput').setAttribute('data-content', (LRatio >= 3) ? "pass" : "fail");
+					gbID('AAThin').setAttribute('data-content', (LRatio >= 4.5) ? "pass" : "fail");
+					gbID('AAThick').setAttribute('data-content', (LRatio >= 3) ? "pass" : "fail");
+					gbID('AAAThin').setAttribute('data-content', (LRatio >= 7) ? "pass" : "fail");
+					gbID('AAAThick').setAttribute('data-content', (LRatio >= 4.5) ? "pass" : "fail");
+					gbID('AAInput').setAttribute('data-content', (LRatio >= 3) ? "pass" : "fail");
 
 					show(ts0, performance.now(), opts);
 				} catch (e) {
@@ -499,59 +294,281 @@
 				function show(ts0, ts1, opts) {
 					setURL(opts);
 					window.writeToLog(`Barcode rendered in ${(ts1 - ts0).toFixed(3)} msecs`);
-					document.gbID('saveas').style.visibility = 'visible';
-					saveCanvas.basename = opts.bcid + '-' + opts.text.replace(/[^a-zA-Z0-9._]+/g, '-');
+					gbID('saveas').style.visibility = 'visible';
+					saveCanvas.basename = opts.bcid + '-' + opts.text.split("\n")[0].replace(/[^a-zA-Z0-9._]+/g, '-');
 				}
 			}
-
-			const getsRGB = c => (x=>((x <= 0.03928) ? x / 12.92 : Math.pow(((x + 0.055) / 1.055), 2.4)))(parseInt(c, 16) / 255);
-			const getL = c => (0.2126 * getsRGB(c[0]+c[1]) + 0.7152 * getsRGB(c[2]+c[3]) + 0.0722 * getsRGB(c[4]+c[5]));
-			const calculateLRatio = (fg, bg) => ((fgl, bgl)=>(Math.max(fgl, bgl) + 0.05) / (Math.min(fgl, bgl) + 0.05))(getL(fg), getL(bg));
-
-			function saveCanvas(type, ext) {
-				let barcodeSVG = document.gbID('svgTarget').firstChild.cloneNode(true);
-	            // if(id("transparent").checked) avatar.getElementById("background-color").style.opacity = 0;
-
-	            let svgBlob = new Blob([(new XMLSerializer()).serializeToString(barcodeSVG)], {type: 'image/svg+xml;charset=utf-8'});
-	  			let img = new Image();
-	            img.onload = ()=>{ 
-	            	let canvas = document.createElement("canvas");
-	                canvas.width=barcodeSVG.width.baseVal.value; canvas.height=barcodeSVG.height.baseVal.value;
-	                let ctx = canvas.getContext("2d"); ctx.drawImage(img, 0, 0);
-	                triggerDownload(canvas.toDataURL(type), saveCanvas.basename + ext);
-	            };
-	            img.setAttribute("src", URL.createObjectURL(svgBlob));
-			}
 			
-			function saveSVG() {
-				triggerDownload(URL.createObjectURL(new Blob([document.gbID('svgTarget').innerHTML], {type: "image/svg+xml"})), saveCanvas.basename + '.svg');
-			}
-			
+			window.addEventListener('load', function() { 
+				// Set up the select list of barcode types
+				{
+					let opts = Object.entries(symdesc);
+					opts.sort(function(a, b) { return a[1] < b[1] ? -1 : 1 });
+					gbID('symbol').append(...opts.map(opt=>new Option(opt[1], opt[0])));
+				}
+				
+				gbID('symbol').addEventListener('change', function(ev) {
+					gbID('saveas').style.visibility = 'hidden';
+					console.log(ev.target.value)
+					window.changeBarcodeOptions(gbID('barcodeTypeOptions'), ev.target.value);
+					render();
+				});
 
-			function setURL(opts) {
-				let args = [];
-				const singles = ['includecheck', 'includetext', 'includecheckintext'];
-				const URIEncodingRequired = ['text', 'alttext'];
-				for (const [key, value] of Object.entries(opts)) {
-					if (key === 'bcid') continue;
-					if (singles.includes(key)){
-						if(value){ args.push(key); }
-					} else {
-						args.push(`${key}=${URIEncodingRequired.includes(key) ? encodeURIComponent(value) : value}`);
+				function dTh(val){ return (val).toString(16).padStart(2, '0'); }
+				
+				gbID('scaleX').addEventListener('change', function(ev) { gbID('scaleY').value = ev.target.value; });
+				gbID('render').addEventListener('click', render);
+				gbID('autoAAABarcodeColor').addEventListener('click', function(ev) {
+					ev.target.disabled = true;
+
+					setTimeout(()=>{
+						let ts0 = performance.now();
+
+						// Goal: Calculate color with min L ratio of 7
+						let bgC = gbID('bgcolor').value.substr(1);
+						let bgL = getL(bgC);
+						const min_L_ratio = 5, AAA_ratio = 7;
+
+						let fgCElement = gbID('fgcolor');
+						let possible_rgbs = [];
+						const step = 4;
+
+						// Brute force is the easiest understandable solution towards finding the fg color
+						// Number of iterations: (int(255/step))^3
+						// At step = 4, search space is computable in ~300ms. 
+						for (let r = 0; r <= 255; r += step){
+							for (let g = 0; g <= 255; g += step){
+								for (let b = 0; b <= 255; b += step){
+									const fgC = `${dTh(r)}${dTh(g)}${dTh(b)}`;
+									const fgL = getL(fgC);
+									const LRatio = (Math.max(fgL, bgL) + 0.05) / (Math.min(fgL, bgL) + 0.05);
+									if (LRatio >= min_L_ratio) {
+										possible_rgbs.push([fgC, LRatio]);
+									}
+								}
+							}
+						}
+
+						if (possible_rgbs.some(e=>e[1] >= AAA_ratio)){
+							writeToLog("Using guessed AAA-compliant color that achieves minimum luminance contrast ratio");
+							let AAA = possible_rgbs.filter(e=>e[1] >= AAA_ratio);
+							fgCElement.value = `#${AAA[(Math.random()*AAA.length)|0][0]}`;
+						} else if (possible_rgbs.some(e=>e[1] >= 6)){
+							writeToLog("Unable to find AAA-compliant color - Using colors with minimum LCR >= 6");
+							let al6 = possible_rgbs.filter(e=>e[1] >= 6);
+							fgCElement.value = `#${al6[(Math.random()*al6.length)|0][0]}`;
+						} else if (possible_rgbs.length > 0) {
+							writeToLog("Unable to find AAA-compliant color - Using colors with minimum LCR >= 5");
+							fgCElement.value = `#${possible_rgbs[(Math.random()*possible_rgbs.length)|0][0]}`;
+						} else {
+							writeToLog("Unable to find AAA-compliant color - Defaulting to black/white");
+							fgCElement.value = `#${getLRatio('000000', bgC) > getLRatio('FFFFFF', bgC) ? '000000' : 'FFFFFF'}`;
+						}
+
+						writeToLog(`Computed fg color guess in ${ (performance.now() - ts0).toFixed(3) } ms`);
+						ev.target.disabled = false;
+
+						render();
+					}, 0);
+				});
+
+				gbID('autoComplementaryBarcodeColor').addEventListener('click', function(ev) {
+					ev.target.disabled = true;
+
+					const hti=(hex)=>parseInt(hex, 16);
+					const hexToRGB=(hex = "#000000")=>[hti(hex[1] + hex[2]), hti(hex[3] + hex[4]), hti(hex[5] + hex[6])];
+					function RGBtoHSL(r = 0, g = 0, b = 0){ r /= 255, g /= 255, b /= 255;
+						let max=Math.max(r,g,b), min=Math.min(r,g,b); let d=max-min, l2=max+min; // l2 = lightness * 2 
+
+						if (max == min) return { h: 0, s: 0, l: l2/2 }; // h = [0-1], s = [0-1], l = [0-1]
+						return {h:{[r]:(g-b)/d+(g<b?6:0), [g]:(b-r)/d+2, [b]:(r-g)/d+4}[max]/6, s:d/(l2>1?(2-l2):l2), l:l2/2 } 
 					}
-				}
-				document.gbID('apiurl').href = `https://bwipjs-api.metafloor.com/?bcid=${opts['bcid']}&${args.join('&')}`;
-			}
-			
-			window.writeToLog = (text)=>{
-				let log = document.gbID('logArea')
-				log.append(
-					Object.assign(document.createElement('span'), {textContent: `${(new Date()).toLocaleTimeString('en-US', { hour12: false })} - ${text}`}),
-					document.createElement('br')
-				)
-				log.scrollTo(0, log.scrollHeight);
-			};
 
+					function hue2rgb(p, q, t) {
+						t = (t < 0) ? t + 1 : ((t > 1) ? t - 1 : t );
+						if (t < 1/6) return p + (q - p) * 6 * t;
+						if (t < 1/2) return q;
+						if (t < 2/3) return p + (q - p) * (2/3 - t) * 6;
+						return p;
+					}
+
+					function hslToRgb(h = 0, s = 0, l = 0) { // h = [0-1], s = [0-1], l = [0-1]
+						// r = [0-255], g = [0-255], b = [0-255]
+						if (s == 0) return [ (l * 255)|0, (l * 255)|0, (l * 255)|0 ]; 
+
+						const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+						const p = 2 * l - q;
+						return [ 
+							(hue2rgb(p, q, h + 1/3) * 255)|0,  (hue2rgb(p, q, h) * 255)|0,  (hue2rgb(p, q, h - 1/3) * 255)|0
+						];
+					}
+
+					setTimeout(()=>{
+						let ts0 = performance.now();
+
+						// Goal: Calculate color with min L ratio of 7
+						let bgRGBHex = gbID('bgcolor').value.substr(1);
+						let bgRGB = hexToRGB(gbID('bgcolor').value);
+						let bgHSL = RGBtoHSL(bgRGB[0], bgRGB[1], bgRGB[2]);
+						let fgH = (bgHSL.h + 0.5) % 1;
+
+						const min_L_ratio = 5;
+
+						let fgCElement = gbID('fgcolor');
+
+						let LValues = [];
+						for(let fgl = 0; fgl <= 100; fgl++){
+							const fgRGBHex = (x=>`${dTh(x[0])}${dTh(x[1])}${dTh(x[2])}`)(hslToRgb(fgH, bgHSL.s, Math.min(1, fgl * 0.01)));
+							const lratio = getLRatio(fgRGBHex, bgRGBHex);
+							if(lratio > 4){ LValues.push([fgRGBHex, lratio]); }
+						}
+						
+						if (LValues.some(v=>v[1] >= min_L_ratio)) {
+							let LValuesT = LValues.filter(v=>v[1] >= min_L_ratio);
+							fgCElement.value = `#${LValuesT[(Math.random()*LValuesT.length)|0][0]}`;
+						} else {
+							// LCR = (Math.max(fgl, bgl) + 0.05) / (Math.min(fgl, bgl) + 0.05)
+							// fgl & bgl range := [0, 1]
+							// fgl > bgl |=> LCR = (fgl + 0.05) / (bgl + 0.05)
+							// 			 |=> LCR * bgl + (LCR - 1) * 0.05 = fgl 
+							//			 | ( ( 1.05 - 0.05 * LCR ) / LCR > bgl)
+							// bgl > fgl |=> LCR = (bgl + 0.05) / (fgl + 0.05)
+							// 			 |=> LCR * fgl + (LCR - 1) * 0.05 = bgl
+							//			 |=> fgl = (bgl - ((LCR - 1) * 0.05)) / LCR
+							//			 | ( bgl > ((LCR - 1) * 0.05) )
+							// (LCR = X) |=> ( 1.05 - 0.05 * X ) / X = ((X - 1) * 0.05)
+							// 			 |=> 1.05 - 0.05 * X = 0.05*X*X - 0.05*X
+							//			 |=> sqrt(1.05/0.05) = X ~ 4.58257569495584
+							writeToLog(`Unable to find HSL with LCR >= 5: Finding min HSL with LCR >= 4.58`);
+							let LValuesT = LValues.filter(v=>v[1] >= 4.58);
+							fgCElement.value = `#${LValuesT[(Math.random()*LValuesT.length)|0][0]}`;
+						}
+
+						writeToLog(`Computed complementary fg color in ${ (performance.now() - ts0).toFixed(3) } ms`);
+						ev.target.disabled = false;
+
+						render();
+					}, 0);
+				});
+
+				gbID('fontLoadForm').addEventListener('submit', async function (ev) {
+					ev.preventDefault();
+					try {
+						const fontname = gbID('fontname').value;
+						if ([...gbID('barcodeTextFontType').options].some(e=>e.textContent.toUpperCase()===fontname.toUpperCase() || e.value.toUpperCase()===fontname.toUpperCase())){
+							writeToLog("Cannot load font - font name has already been used.");
+						} else {
+							const buffer = await gbID('fontfile').files[0].arrayBuffer();
+							window.bwipjs.loadFont(fontname, buffer);
+
+							gbID('barcodeTextFontType').append(new Option(fontname, fontname));
+							writeToLog(`Font '${fontname}' loaded.`);
+						}
+					} catch (e) {
+						// Watch for BWIPP generated raiseerror's.
+						let msg = ('' + e).trim();
+						if (e.stack) {
+							// GC includes the message in the stack.  FF does not.
+							window.writeToLog((e.stack.indexOf(msg) == -1 ? msg + '\n' : '') + e.stack);
+						} else {
+							window.writeToLog(msg);
+						}
+					}
+				});
+				gbID('saveas').style.visibility = 'hidden';
+
+				// Allow Enter to render
+				gbID('params').addEventListener('keypress', function(ev) { if (ev.which == 13) { render(); ev.stopPropagation(); ev.preventDefault(); return false; } });
+
+				gbID('versions').textContent = 'bwip-js ' + bwipjs.BWIPJS_VERSION + ' / BWIPP ' + bwipjs.BWIPP_VERSION;
+
+				document.addEventListener('change', function(ev){ 
+					if(!['symtext', 'symaltx', 'symbol'].includes(ev.target.id)){
+						render(); 
+					}
+				});
+				gbID('symtext').addEventListener('input', function (ev) { 
+					if(ev.target.value.length === 0){ ev.target.value = "12345"; }
+					render(); ev.stopPropagation(); ev.preventDefault(); return false; 
+				});
+				gbID('symaltx').addEventListener('input', function (ev) { render(); ev.stopPropagation(); ev.preventDefault(); return false; });
+
+				window.fontLoaderLoop = setInterval(window.fontLoader, 100);
+				window.savedDataLoader = setInterval(function() {
+					if(window.fontLoadComplete === true){
+						let element = gbID("symtext");
+
+					    function pasteIntoInput(el, text) {
+					        el.focus();
+					        if (typeof el.selectionStart == "number" && typeof el.selectionEnd == "number") {
+					            let val = el.value, selStart = el.selectionStart;
+					            el.value = val.slice(0, selStart) + text + val.slice(el.selectionEnd);
+					            el.selectionEnd = el.selectionStart = selStart + text.length;
+					        } else if (typeof document.selection != "undefined") {
+					            let textRange = document.selection.createRange();
+					            textRange.text = text;
+					            textRange.collapse(false);
+					            textRange.select();
+					        }
+					    }
+
+					    function handleEnter(evt) {
+					        let insert = ({13: '\n', 9: '\t'})[evt.keyCode];
+					        if (insert !== undefined){ pasteIntoInput(evt.target, insert); evt.preventDefault(); }
+					    }
+					    element = gbID("symtext");
+					    // Handle both keydown and keypress for Opera, which only allows default
+					    // key action to be suppressed in keypress
+					    element.addEventListener('keydown', handleEnter);
+					    element.addEventListener('keypress', handleEnter);
+
+						var saved;
+						try { saved = JSON.parse(localStorage.getItem('bwipjsLastSettings')); } catch (e) { console.error(e); }
+
+					    if (saved) {
+							if (saved.symbol) { gbID('symbol').value = saved.symbol; } else { gbID('symbol').value = "qrcode"; }
+							window.changeBarcodeOptions(gbID('barcodeTypeOptions'),  gbID('symbol').value);
+							if (saved.version) { gbID('barcodeTypeOptions').value = saved.version; }
+							if (saved.text) { gbID('symtext').value = saved.text; }
+							if (saved.alttext) { gbID('symaltx').value = saved.alttext; }
+							if (saved.scaleX && saved.scaleY) { gbID('scaleX').value = saved.scaleX; gbID('scaleY').value = saved.scaleY; }
+							if (saved.rotate) { gbID('rotate' + saved.rotate).checked = true; }
+							if (saved.fontType) { 
+								if([...gbID('barcodeTextFontType').options].some(e=>e.value === saved.fontType)){
+									gbID('barcodeTextFontType').value = saved.fontType; 
+								} else {
+									gbID('barcodeTextFontType').value = "OCR-A";
+								}
+							}
+							if (saved.fontSize) { gbID('textSize').value = saved.fontSize; }
+							if (saved.includeCheck) { gbID('includeCheck').checked = saved.includeCheck; }
+							if (saved.includeText) { gbID('includeText').checked = saved.includeText; }
+							if (saved.includeCheckInText) { gbID('includeCheckInText').checked = saved.includeCheckInText; }
+							if (saved.miscOptions) { gbID('symopts').value = saved.miscOptions; }
+							if (saved.SVGRenderWithOnlyIntegers) { gbID('SVGRenderWithOnlyIntegers').checked = saved.SVGRenderWithOnlyIntegers; }
+							if (saved.padding) { gbID('padding').value = saved.padding; }
+
+							if (saved.fgColor) { gbID('fgcolor').value = `#${saved.fgColor}`; }
+							if (saved.bgColor) { gbID('bgcolor').value = `#${saved.bgColor}`; }
+							if (saved.transparentBG) {  gbID('transparentBG').checked = saved.transparentBG; }
+						} else {
+							gbID('symbol').value = "qrcode";
+							window.changeBarcodeOptions(gbID('barcodeTypeOptions'),  gbID('symbol').value);
+						}
+
+					    try {
+					    	if(saved) render();
+					    } catch (e) {
+					    	writeToLog("Unable to render saved barcode params");
+					    	console.error(e);
+					    }
+					    clearInterval(window.savedDataLoader);
+					    writeToLog("Cleared saved data loader loop");
+					} else { writeToLog("Fonts not loaded in yet - Relooping"); }
+				}, 200);
+			});
+
+			
 		</script>
 	</head>
 
@@ -569,7 +586,9 @@
 								<tbody>
 									<tr>
 										<th>Barcode Type:</th>
-										<td colspan="7"><select id="symbol"></select></td>
+										<td colspan="5"><select id="symbol"></select></td>
+										<th>Version:</th>
+										<td><select id="barcodeTypeOptions"></select></td>
 									</tr>
 									<tr>
 										<th>Bar Text:</th>
@@ -581,18 +600,15 @@
 									</tr>
 									<tr>
 										<th>Font Type:</th>
-										<td>
-											<select id="barcodeTextFontType">
-											</select>
-										</td>
+										<td colspan="2"><select id="barcodeTextFontType"></select></td>
 										<th>Font Size:</th>
 										<td><input id="textSize" type="number" value="10" min="1"></td>
-										<th>Padding:</th>
+										<th  colspan="2">Padding:</th>
 										<td><input type="number" id="padding" value="1" min="0" step="1" max="10"></td>
 									</tr>
 									<tr>
 										<th>Barcode & Text color:</th>
-										<td><input type="color" id="fgcolor" value="#000000" /></td>
+										<td colspan="2"><input type="color" id="fgcolor" value="#000000" /></td>
 										<th>Background color:</th>
 										<td><input type="color" id="bgcolor" value="#ffffff" /></td>
 										<th colspan="2"><label for="transparentBG">Generate with transparent background:</label></th>
@@ -600,7 +616,7 @@
 									</tr>
 									<tr>
 										<th><label for="includeCheck">Include check:</label></th>
-										<td><input type="checkbox" name="includeCheck" id="includeCheck" /></td>
+										<td colspan="2"><input type="checkbox" name="includeCheck" id="includeCheck" /></td>
 										<th><label for="includeText">Include text:</label></th>
 										<td><input type="checkbox" name="includeText" id="includeText" /></td>
 										<th colspan="2"><label for="includeCheckInText">Include check in text:</label></th>
@@ -626,11 +642,7 @@
 										</td>
 									</tr>
 									<tr>
-										<td colspan="8">
-											<div id="content">
-												<div id="svgTarget"></div>
-											</div>
-										</td>
+										<td colspan="8"><div id="content"><div id="svgTarget"></div></div></td>
 								</tbody>
 							</table>
 						</td>
@@ -661,8 +673,9 @@
 										<td></td>
 										<td>
 											<button style="margin-top:1ex" id="render" disabled>Show Barcode</button>
-											<button style="margin-top:1ex" id="autoBarcodeColor" >Auto-select AAA Barcode Color</button>
-											<button style="margin-top:1ex" onclick="(()=>{document.gbID('logArea').textContent = '';})()">Clear Log</button>
+											<button style="margin-top:1ex" onclick="(()=>{gbID('logArea').textContent = '';})()">Clear Log</button> <br>
+											<button style="margin-top:1ex" id="autoAAABarcodeColor" >Random AAA Barcode Color</button> <br>
+											<button style="margin-top:1ex" id="autoComplementaryBarcodeColor" >Random Complementary Barcode Color</button>
 										</td>
 									</tr>
 									<tr>
@@ -673,24 +686,22 @@
 												<tbody>
 													<tr>
 														<td style="padding-right: 1em;">
-															<span>AA Thin Text: 	<span class="passFail" id="AAThin">(uncalculated)</span></span><br />
+															<span>AA Thin Text: 	<span class="passFail" id="AAThin"></span></span><br />
 														</td>
 														<td style="padding-right: 1em;">
-															<span>AA Thick Text: 	<span class="passFail" id="AAThick">(uncalculated)</span></span><br />
+															<span>AA Thick Text: 	<span class="passFail" id="AAThick"></span></span><br />
 														</td>
 														<td>
-															<span>AA Input: 		<span class="passFail" id="AAInput">(uncalculated)</span></span><br />
+															<span>AA Input: 		<span class="passFail" id="AAInput"></span></span><br />
 														</td>
 													</tr>
 													<tr>
 														<td style="padding-right: 1em;">
-															<span>AAA Thin Text: 	<span class="passFail" id="AAAThin">(uncalculated)</span></span><br />
+															<span>AAA Thin Text: 	<span class="passFail" id="AAAThin"></span></span><br />
 														</td>
 														<td>
-															<span>AAA Thick Text: 	<span class="passFail" id="AAAThick">(uncalculated)</span></span><br />
+															<span>AAA Thick Text: 	<span class="passFail" id="AAAThick"></span></span><br />
 														</td>
-													</tr>
-													<tr>
 													</tr>
 												</tbody>
 											</table>
@@ -715,7 +726,6 @@
 							</table>
 						</td>
 					</tr>
-					<tr> <td> <br> </td> </tr>
 				</tbody>
 			</table>
 		</div>
@@ -724,7 +734,7 @@
 		/** { outline: 1px solid blue; }*/
 
 		#symtext, #symopts { min-height: 5em; width: 50vw; }
-		#symbol, #symaltx { width: 30em; }
+		#symbol, #symaltx { width: 100%; }
 		
 		/* bwip-js : lib/demo.css */
 		body { font: 11pt "Lucida Grande",Calibri,Helvetica,Arial,sans-serif; margin: 0; }
@@ -744,6 +754,7 @@
 			border:				1px solid #999;
 			border-radius:		4px;
 		}
+		#barcodeTypeOptions { min-width: 8em; }
 		#params, #content { margin-left: 20px; margin-top: 10px; }
 		#params > table { max-width: calc(100% - 20px); }
 		#params th { text-align: right; padding-right: 1ex; max-width: 6em; }
@@ -753,8 +764,11 @@
 		button { padding: .5ex 1ex; min-width: 18ex; }
 		#LRatio { font-weight: bold; }
 		span.passFail { font-weight: bold; }
+		span.passFail::before { content: "(Uncalculated)"; }
 		span.passFail[data-content='pass'] { color: darkgreen; }
+		span.passFail[data-content='pass']::before { color: darkgreen; content: "Pass"; }
 		span.passFail[data-content='fail'] { color: darkred; }
+		span.passFail[data-content='fail']::before { color: darkred; content:"Fail"; }
 
 		div#svgTarget { width: fit-content; }
 		div#svgTarget[transparentbg='true'] {
