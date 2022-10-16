@@ -35,7 +35,7 @@ function DrawingSVG(opts, FontLib, integers_only=false) {
     var lines = {};
 
     // Magic number to approximate an ellipse/circle using 4 cubic beziers.
-    var ELLIPSE_MAGIC = 0.55228475 - 0.00045;
+    const ELLIPSE_MAGIC = 0.55228475 - 0.00045;
 
     // Global graphics state
     var gs_width, gs_height;    // image size, in pixels
@@ -55,10 +55,8 @@ function DrawingSVG(opts, FontLib, integers_only=false) {
             fwidth = fwidth|0;
             fheight = fheight|0;
 
-            var fontid = FontLib.lookup(font);
-            var width = 0;
-            var ascent = 0;
-            var descent = 0;
+            const fontid = FontLib.lookup(font);
+            let width = 0, ascent = 0, descent = 0;
             for (var i = 0; i < str.length; i++) {
                 var ch = str.charCodeAt(i);
                 var glyph = FontLib.getpaths(fontid, ch, fwidth, fheight);
@@ -77,29 +75,27 @@ function DrawingSVG(opts, FontLib, integers_only=false) {
         init(width, height) {
             // Add in the effects of padding.  These are always set before the
             // drawing constructor is called.
-            var padl = opts.paddingleft;
-            var padr = opts.paddingright;
-            var padt = opts.paddingtop;
-            var padb = opts.paddingbottom;
-            var rot  = opts.rotate || 'N';
+            const padl = opts.paddingleft, padr = opts.paddingright, 
+                padt = opts.paddingtop, padb = opts.paddingbottom, 
+                rot = opts.rotate || 'N';
 
             width  += padl + padr;
             height += padt + padb;
 
             // Transform indexes are: x, y, w, h
             switch (rot) {
-            // tx = w-y, ty = x
-            case 'R': tx1 = -1; tx2 = 1; ty0 = 1; break;
-            // tx = w-x, ty = h-y
-            case 'I': tx0 = -1; tx2 = 1; ty1 = -1; ty3 = 1; break;
-            // tx = y, ty = h-x
-            case 'L': tx1 = 1; ty0 = -1; ty3 = 1; break;
-            // tx = x, ty = y
-            default:  tx0 = ty1 = 1; break;
+                // tx = w-y, ty = x
+                case 'R': tx1 = -1; tx2 = 1; ty0 = 1; break;
+                // tx = w-x, ty = h-y
+                case 'I': tx0 = -1; tx2 = 1; ty1 = -1; ty3 = 1; break;
+                // tx = y, ty = h-x
+                case 'L': tx1 = 1; ty0 = -1; ty3 = 1; break;
+                // tx = x, ty = y
+                default:  tx0 = ty1 = 1; break;
             }
 
             // Setup the graphics state
-            var swap = rot == 'L' || rot == 'R';
+            const swap = rot == 'L' || rot == 'R';
             gs_width  = swap ? height : width;
             gs_height = swap ? width : height;
             gs_dx = padl;
@@ -132,7 +128,7 @@ function DrawingSVG(opts, FontLib, integers_only=false) {
 
             // Group together all lines of the same width and emit as single paths.
             // Dramatically reduces resulting text size.
-            var key = '' + lw + '#' + rgb;
+            const key = `${lw}#${rgb}`;
             if (!lines[key]) {
                 lines[key] = `<path stroke="#${rgb}" stroke-width="${lw}" d="`;
             }
@@ -147,11 +143,8 @@ function DrawingSVG(opts, FontLib, integers_only=false) {
                 path = '<path d="';
             }
             path += 'M' + transform(pts[0][0], pts[0][1]);
-            for (var i = 1, n = pts.length; i < n; i++) {
-                var p = pts[i];
-                path += 'L' + transform(p[0], p[1]);
-            }
-            path += 'Z';
+            path += pts.slice(1).map(([x,y])=>'L' + transform(x, y)).join('');
+            path += 'Z ';
         },
         // An unstroked, filled hexagon used by maxicode.  You can choose to fill
         // each individually, or wait for the final fill().
@@ -168,24 +161,15 @@ function DrawingSVG(opts, FontLib, integers_only=false) {
             if (!path) {
                 path = '<path d="';
             }
-            var dx = rx * ELLIPSE_MAGIC;
-            var dy = ry * ELLIPSE_MAGIC;
+            const dx = rx * ELLIPSE_MAGIC, dy = ry * ELLIPSE_MAGIC;
 
             // Since we fill with even-odd, don't worry about cw/ccw
             path += 'M' + transform(x - rx, y) +
-                    'C' + transform(x - rx, y - dy) + ' ' +
-                          transform(x - dx, y - ry) + ' ' +
-                          transform(x,      y - ry) +
-                    'C' + transform(x + dx, y - ry) + ' ' +
-                          transform(x + rx, y - dy) + ' ' +
-                          transform(x + rx, y) + 
-                    'C' + transform(x + rx, y + dy) + ' ' +
-                          transform(x + dx, y + ry) + ' ' +
-                          transform(x,      y + ry) +  
-                    'C' + transform(x - dx, y + ry) + ' ' +
-                          transform(x - rx, y + dy) + ' ' +
-                          transform(x - rx, y) + 
-                    'Z';
+                    'C' + transform(x - rx, y - dy) + transform(x - dx, y - ry) + transform(x     , y - ry) +
+                    'C' + transform(x + dx, y - ry) + transform(x + rx, y - dy) + transform(x + rx, y     ) + 
+                    'C' + transform(x + rx, y + dy) + transform(x + dx, y + ry) + transform(x     , y + ry) +  
+                    'C' + transform(x - dx, y + ry) + transform(x - rx, y + dy) + transform(x - rx, y     ) + 
+                    'Z ';
         },
         // PostScript's default fill rule is even-odd.
         fill(rgb) {
@@ -199,14 +183,13 @@ function DrawingSVG(opts, FontLib, integers_only=false) {
         // width and height are the font cell size.
         // dx is extra space requested between characters (usually zero).
         text(x, y, str, rgb, font) {
-            var fontid  = FontLib.lookup(font.name);
-            var fwidth  = font.width|0;
-            var fheight = font.height|0;
-            var dx      = font.dx|0;
-            var path = '';
-            for (var k = 0; k < str.length; k++) {
-                var ch = str.charCodeAt(k);
-                var glyph = FontLib.getpaths(fontid, ch, fwidth, fheight);
+            const fontid  = FontLib.lookup(font.name);
+            const fwidth  = font.width|0, fheight = font.height|0;
+            const dx      = font.dx|0;
+            let path = '';
+            for (let k = 0; k < str.length; k++) {
+                const ch = str.charCodeAt(k);
+                const glyph = FontLib.getpaths(fontid, ch, fwidth, fheight);
                 if (!glyph) {
                     continue;
                 }
@@ -216,21 +199,21 @@ function DrawingSVG(opts, FontLib, integers_only=false) {
                     // L is line-to
                     // Q is quadratic bezier curve-to
                     // C is cubic bezier curve-to
-                    for (var i = 0, l = glyph.length; i < l; i++) {
+                    for (let i = 0, l = glyph.length; i < l; i++) {
                         let seg = glyph[i];
                         if (seg.type == 'M' || seg.type == 'L') {
                             path += seg.type + transform(seg.x + x, y - seg.y);
                         } else if (seg.type == 'Q') {
-                            path += seg.type + transform(seg.cx + x, y - seg.cy) + ' ' +
+                            path += seg.type + transform(seg.cx + x, y - seg.cy) +
                                                transform(seg.x + x,  y - seg.y);
                         } else if (seg.type == 'C') {
-                            path += seg.type + transform(seg.cx1 + x, y - seg.cy1) + ' ' +
-                                               transform(seg.cx2 + x, y - seg.cy2) + ' ' +
+                            path += seg.type + transform(seg.cx1 + x, y - seg.cy1) +
+                                               transform(seg.cx2 + x, y - seg.cy2) +
                                                transform(seg.x + x,   y - seg.y);
                         }
                     }
                     // Close the shape
-                    path += 'Z';
+                    path += 'Z ';
                 }
                 x += glyph.advance + dx;
             }
@@ -241,15 +224,15 @@ function DrawingSVG(opts, FontLib, integers_only=false) {
         // Called after all drawing is complete.  The return value from this method
         // is the return value from `bwipjs.render()`.
         end() {
-            var linesvg = '';
-            for (var key in lines) {
-                linesvg += lines[key] + '" />\n';
-            }
-            var bg = opts.backgroundcolor;
-            return `<svg version="1.1" width="${gs_width}" height="${gs_height}" viewBox="0 0 ${gs_width} ${gs_height}" preserveAspectRatio="xMidYMid meet">\n` +
-                        (/^[0-9A-Fa-f]{6}$/.test(''+bg) ? `<rect id="barcodeBG" width="100%" height="100%" fill="#${bg}" />\n` : '') + linesvg + svg + '</svg>\n';
+            let linesvg = Object.values(lines).map(l=>`${l}" />`).join('\n');
+            let bg = opts.backgroundcolor;
+            return `<svg xmlns="http://www.w3.org/2000/svg" version="1.1" width="${gs_width}" height="${gs_height}" viewBox="0 0 ${gs_width} ${gs_height}" preserveAspectRatio="xMidYMid meet">\n
+            ${(/^[0-9A-Fa-f]{6}$/.test(''+bg) ? `<rect id="barcodeBG" width="100%" height="100%" fill="#${bg}" />\n` : '')}
+            ${linesvg}${svg}\n</svg>`;
         },
     };
+
+    function roundTo2DP(x){ return Math.round(x * 100) / 100; }
 
     // translate/rotate and return as an SVG coordinate pair
     function transform(x, y) {
@@ -257,7 +240,7 @@ function DrawingSVG(opts, FontLib, integers_only=false) {
         y += gs_dy;
         let tx = tx0 * x + tx1 * y + tx2 * (gs_width-1) + tx3 * (gs_height-1);
         let ty = ty0 * x + ty1 * y + ty2 * (gs_width-1) + ty3 * (gs_height-1);
-        return `${integers_only ? tx.toFixed(0) : tx.toFixed(2)} ${integers_only ? ty.toFixed(0) : ty.toFixed(2)}`;
+        return `${integers_only ? Math.round(tx) : roundTo2DP(tx)},${integers_only ? Math.round(ty) : roundTo2DP(ty)} `;
     }
 }
 
