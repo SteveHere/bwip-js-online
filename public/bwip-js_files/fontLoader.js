@@ -73,10 +73,7 @@ window.fontLoader = () => {
 		let fontOptions = document.getElementById('barcodeTextFontType');
 		for (const [fontName, fontFullName, fontData] of fonts) {
 			window.bwipjs.loadFont(fontName, fontData);
-			fontOptions.append(Object.assign(document.createElement('option'), {
-				value: fontName,
-				textContent: fontFullName,
-			}));
+			fontOptions.append(new Option(fontFullName, fontName));
 		}
 
 		window.writeToLog(`Fonts loaded in ${(performance.now() - start).toFixed(3)}ms`);
