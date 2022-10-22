@@ -180,10 +180,13 @@
 				gbID('apiurl').href = `https://bwipjs-api.metafloor.com/?bcid=${opts['bcid']}&${args.join('&')}`;
 			}
 
-			window.writeToLog = (text)=>{
+			window.writeToLog = (text, error=false)=>{
 				let log = gbID('logArea')
 				log.append(
-					Object.assign(document.createElement('span'), {textContent: `${(new Date()).toLocaleTimeString('en-US', { hour12: false })} - ${text}`}),
+					Object.assign(document.createElement('span'), {
+						textContent: `${(new Date()).toLocaleTimeString('en-US', { hour12: false })} - ${text}`,
+						...(error && { 'className': 'loggederror' }),
+					}),
 					document.createElement('br')
 				)
 				log.scrollTo(0, log.scrollHeight);
@@ -281,12 +284,12 @@
 					// Watch for BWIPP generated raiseerror's.
 					let msg = ('' + e).trim();
 					if (msg.indexOf("bwipp.") >= 0) {
-						window.writeToLog(msg);
+						window.writeToLog(msg, true);
 					} else if (e.stack) {
 						// GC includes the message in the stack.  FF does not.
-						window.writeToLog((e.stack.indexOf(msg) == -1 ? msg + '\n' : '') + e.stack);
+						window.writeToLog((e.stack.indexOf(msg) == -1 ? msg + '\n' : '') + e.stack, true);
 					} else {
-						window.writeToLog(msg);
+						window.writeToLog(msg, true);
 					}
 					throw e;
 				}
@@ -456,7 +459,7 @@
 					try {
 						const fontname = gbID('fontname').value;
 						if ([...gbID('barcodeTextFontType').options].some(e=>e.textContent.toUpperCase()===fontname.toUpperCase() || e.value.toUpperCase()===fontname.toUpperCase())){
-							writeToLog("Cannot load font - font name has already been used.");
+							writeToLog("Cannot load font - font name has already been used.", true);
 						} else {
 							const buffer = await gbID('fontfile').files[0].arrayBuffer();
 							window.bwipjs.loadFont(fontname, buffer);
@@ -469,9 +472,9 @@
 						let msg = ('' + e).trim();
 						if (e.stack) {
 							// GC includes the message in the stack.  FF does not.
-							window.writeToLog((e.stack.indexOf(msg) == -1 ? msg + '\n' : '') + e.stack);
+							window.writeToLog((e.stack.indexOf(msg) == -1 ? msg + '\n' : '') + e.stack, true);
 						} else {
-							window.writeToLog(msg);
+							window.writeToLog(msg, true);
 						}
 					}
 				});
@@ -557,9 +560,10 @@
 						}
 
 					    try {
-					    	if(saved) render();
+					    	if(saved){ render(); }
+							else { gbID('symtext').value = "example"; render(); }
 					    } catch (e) {
-					    	writeToLog("Unable to render saved barcode params");
+					    	writeToLog("Unable to render saved barcode params", true);
 					    	console.error(e);
 					    }
 					    clearInterval(window.savedDataLoader);
@@ -790,6 +794,11 @@
 			overflow-y: scroll;
 			word-break: break-word;
 			word-wrap: break-word;
+		}
+
+		#logArea span.loggederror {
+			color: red;
+			font-weight: bold;
 		}
 	</style>
 </html>

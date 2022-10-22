@@ -94,7 +94,7 @@ window.changeBarcodeOptions = (optionsSelectElement, barcodeType = "qrcode")=>{
                 })
             );
         } else {
-            window.writeToLog("Error - No barcode options detected.");
+            window.writeToLog("Error - No barcode options detected.", true);
         }
     } else {
         // Does not have barcode options - disable optionsSelectElement & clear it in miscOptions
