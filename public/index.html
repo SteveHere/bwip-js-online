@@ -3,6 +3,7 @@
 <html>
 	<head>
 		<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0">
 		<title>SteveHere's bwip-js Barcode Generator fork</title>
 		<meta name="keywords" content="bar code, barcode generator, online barcode generator, free barcode generator, javascript, javascript library, nodejs, QR Code, EAN, EAN 13, Code 128, UPC, ISBN, ITF 14, Code 39, GS1, GS1 128, PDF417, HIBC, DataMatrix, Data Matrix, DataBar, OCR, OCR B, OCR font, Aztec Code, PostNet, USPS, Pharmacode">
 		<meta name="description" content="JavaScript barcode generator and library.  Create any barcode in your browser.">
@@ -264,6 +265,7 @@
 				const opts = {...miscOpts, ...mandated_flags};
 
 				// Draw the bar code to the canvas
+				let display = false;
 				try {
 					const ts0 = performance.now();
 					let clonedOpts = Object.assign({}, opts);
@@ -280,6 +282,7 @@
 					gbID('AAInput').setAttribute('data-content', (LRatio >= 3) ? "pass" : "fail");
 
 					show(ts0, performance.now(), opts);
+					display = true;
 				} catch (e) {
 					// Watch for BWIPP generated raiseerror's.
 					let msg = ('' + e).trim();
@@ -293,6 +296,8 @@
 					}
 					throw e;
 				}
+
+				gbID('resultsContainer').classList.toggle('hide', !display);
 
 				function show(ts0, ts1, opts) {
 					setURL(opts);
@@ -409,7 +414,7 @@
 					setTimeout(()=>{
 						let ts0 = performance.now();
 
-						// Goal: Calculate color with min L ratio of 7
+						// Goal: Calculate barcode & text (foreground) color with min L ratio of 7
 						let bgRGBHex = gbID('bgcolor').value.substr(1);
 						let bgRGB = hexToRGB(gbID('bgcolor').value);
 						let bgHSL = RGBtoHSL(bgRGB[0], bgRGB[1], bgRGB[2]);
@@ -434,11 +439,17 @@
 							// fgl & bgl range := [0, 1]
 							// fgl > bgl |=> LCR = (fgl + 0.05) / (bgl + 0.05)
 							// 			 |=> LCR * bgl + (LCR - 1) * 0.05 = fgl 
-							//			 | ( ( 1.05 - 0.05 * LCR ) / LCR > bgl)
+							//			 | To satisfy fgl > bgl requirement, where fgl = 1:
+							//           | 1 > LCR * bgl + (LCR - 1) * 0.05
+							//			 |=> ( ( 1.05 - 0.05 * LCR ) / LCR > bgl)
+							//
 							// bgl > fgl |=> LCR = (bgl + 0.05) / (fgl + 0.05)
 							// 			 |=> LCR * fgl + (LCR - 1) * 0.05 = bgl
 							//			 |=> fgl = (bgl - ((LCR - 1) * 0.05)) / LCR
-							//			 | ( bgl > ((LCR - 1) * 0.05) )
+							//           | To satisfy bgl > fgl requirement, where fgl = 1:
+							//           | (bgl - ((LCR - 1) * 0.05)) / LCR > 1
+							//			 |=> ( bgl > ((LCR - 1) * 0.05) )
+							//
 							// (LCR = X) |=> ( 1.05 - 0.05 * X ) / X = ((X - 1) * 0.05)
 							// 			 |=> 1.05 - 0.05 * X = 0.05*X*X - 0.05*X
 							//			 |=> sqrt(1.05/0.05) = X ~ 4.58257569495584
@@ -581,188 +592,183 @@
 			<div id="bwip-js">bwip-js // Barcode Writer in Pure JavaScript <a href="https://github.com/SteveHere/bwip-js-online" target="_blank">(SteveHere's fork)</a></div> 
 			<div id="versions"></div>
 		</div>
-		<div id="params">
-			<table border="0" cellpading="0" cellspacing="0">
-				<tbody>
-					<tr>
-						<td style="vertical-align:top;">
-							<table border="0" cellpading="0" cellspacing="0" id="mainparams">
-								<tbody>
-									<tr>
-										<th>Barcode Type:</th>
-										<td colspan="5"><select id="symbol"></select></td>
-										<th>Version:</th>
-										<td><select id="barcodeTypeOptions"></select></td>
-									</tr>
-									<tr>
-										<th>Bar Text:</th>
-										<td colspan="7"><textarea id="symtext" type="text"></textarea></td>
-									</tr>
-									<tr>
-										<th>Alt Text:</th>
-										<td colspan="7"><input id="symaltx" type="text"></td>
-									</tr>
-									<tr>
-										<th>Font Type:</th>
-										<td colspan="2"><select id="barcodeTextFontType"></select></td>
-										<th>Font Size:</th>
-										<td><input id="textSize" type="number" value="10" min="1"></td>
-										<th  colspan="2">Padding:</th>
-										<td><input type="number" id="padding" value="1" min="0" step="1" max="10"></td>
-									</tr>
-									<tr>
-										<th>Barcode & Text color:</th>
-										<td colspan="2"><input type="color" id="fgcolor" value="#000000" /></td>
-										<th>Background color:</th>
-										<td><input type="color" id="bgcolor" value="#ffffff" /></td>
-										<th colspan="2"><label for="transparentBG">Generate with transparent background:</label></th>
-										<td><input type="checkbox" name="transparentBG" id="transparentBG" /></td>
-									</tr>
-									<tr>
-										<th><label for="includeCheck">Include check:</label></th>
-										<td colspan="2"><input type="checkbox" name="includeCheck" id="includeCheck" /></td>
-										<th><label for="includeText">Include text:</label></th>
-										<td><input type="checkbox" name="includeText" id="includeText" /></td>
-										<th colspan="2"><label for="includeCheckInText">Include check in text:</label></th>
-										<td><input type="checkbox" name="includeCheckInText" id="includeCheckInText" /></td>
-									</tr>
-									<tr>
-										<th>Options:</th>
-										<td colspan="7"><textarea id="symopts" type="text"></textarea></td>
-									</tr>
-									<tr>
-										<td></td>
-										<td colspan="7">
-											<div id="saveas" style="visibility: hidden;">
-												<a class="saveas" href="javascript:saveSVG()">Save As SVG</a>
-												&nbsp;&nbsp;
-												<a class="saveas" href="javascript:saveCanvas('image/png','.png')">Save As PNG</a>
-												&nbsp;&nbsp;
-												<a class="saveas" href="javascript:saveCanvas('image/jpeg','.jpg')">Save As JPEG</a>
-												&nbsp;&nbsp;
-												<a class="saveas" id="apiurl" href="">Goto URL</a>
-												&nbsp;&nbsp;
-											</div>
-										</td>
-									</tr>
-									<tr>
-										<td colspan="8"><div id="content"><div id="svgTarget"></div></div></td>
-								</tbody>
-							</table>
-						</td>
-						<td style="vertical-align:top;">
-							<table border="0" cellpading="0" cellspacing="5">
-								<tbody>
-									<tr>
-										<th>Scale X,Y:</th>
-										<td>
-											<input type="number" min="1" max="9" step="1" id="scaleX" value="2">
-											<input type="number" min="1" max="9" step="1" id="scaleY" value="2">
-										</td>
-									</tr>
-									<tr>
-										<th>Image Rotation:</th>
-										<td>
-											<label for="rotateN"><input type="radio" name="rotate" value="N" id="rotateN" checked="">Normal</label>
-											<label for="rotateR"><input type="radio" name="rotate" value="R" id="rotateR">Right</label>
-											<label for="rotateL"><input type="radio" name="rotate" value="L" id="rotateL">Left</label>
-											<label for="rotateI"><input type="radio" name="rotate" value="I" id="rotateI">Invert</label>
-										</td>
-									</tr>
-									<tr>
-										<th><label for="SVGRenderWithOnlyIntegers">Sharpen text:</label></th>
-										<td><input type="checkbox" name="SVGRenderWithOnlyIntegers" id="SVGRenderWithOnlyIntegers"></td>
-									</tr>
-									<tr>
-										<td></td>
-										<td>
-											<button style="margin-top:1ex" id="render" disabled>Show Barcode</button>
-											<button style="margin-top:1ex" onclick="(()=>{gbID('logArea').textContent = '';})()">Clear Log</button> <br>
-											<button style="margin-top:1ex" id="autoAAABarcodeColor" >Random AAA Barcode Color</button> <br>
-											<button style="margin-top:1ex" id="autoComplementaryBarcodeColor" >Random Complementary Barcode Color</button>
-										</td>
-									</tr>
-									<tr>
-										<th>WCAG 2.0 Compliance:</th>
-										<td class="borderify">
-											<span>Luminance Ratio: 	<span id="LRatio">(uncalculated)</span></span><br />
-											<table>
-												<tbody>
-													<tr>
-														<td style="padding-right: 1em;">
-															<span>AA Thin Text: 	<span class="passFail" id="AAThin"></span></span><br />
-														</td>
-														<td style="padding-right: 1em;">
-															<span>AA Thick Text: 	<span class="passFail" id="AAThick"></span></span><br />
-														</td>
-														<td>
-															<span>AA Input: 		<span class="passFail" id="AAInput"></span></span><br />
-														</td>
-													</tr>
-													<tr>
-														<td style="padding-right: 1em;">
-															<span>AAA Thin Text: 	<span class="passFail" id="AAAThin"></span></span><br />
-														</td>
-														<td>
-															<span>AAA Thick Text: 	<span class="passFail" id="AAAThick"></span></span><br />
-														</td>
-													</tr>
-												</tbody>
-											</table>
-										</td>
-									</tr>
-									<tr>
-										<th>Font Loader:</th>
-										<td class="borderify">
-											<form id="fontLoadForm">
-												<span>File (.ttf & .otf only): <input type="file" id="fontfile" name="fontfile" accept=".otf,.ttf" required></span> <br><br>
-												<span>Font Name: <input type="text" id="fontname" name="fontname" minlength="3" required></span> <br><br>
-												<button type="submit">Load Font File</button>
-											</form>
-										</td>
-									</tr>
+		
+		
 
-									<tr>
-										<th style="vertical-align: unset;">Log:</th>
-										<td class="borderify"><div id='logArea'></div></td>
-									</tr>
-								</tbody>
-							</table>
-						</td>
-					</tr>
-				</tbody>
-			</table>
+		<div id="params">
+			<div class="flexify">
+				<span>Barcode Type:</span>
+				<div><select id="symbol"></select></div>
+				<span>Version:</span>
+				<div><select id="barcodeTypeOptions"></select></div>
+			</div>
+			<div>
+				<span>Bar Text:</span>
+				<div><textarea id="symtext" type="text"></textarea></div>
+			</div>
+			<div>
+				<span>Alt Text:</span>
+				<div><input id="symaltx" type="text"></div>
+			</div>
+
+			<div id="resultsContainer" class="hide">
+				<span>Result: </span>
+				<div id="content">
+					<div id="svgTarget"></div>
+				</div>
+				
+				<div>
+					<div id="saveas" style="visibility: hidden;">
+						<a class="saveas" href="javascript:saveSVG()">Save As SVG</a>
+						&nbsp;&nbsp;
+						<a class="saveas" href="javascript:saveCanvas('image/png','.png')">Save As PNG</a>
+						&nbsp;&nbsp;
+						<a class="saveas" href="javascript:saveCanvas('image/jpeg','.jpg')">Save As JPEG</a>
+						&nbsp;&nbsp;
+						<a class="saveas" id="apiurl" href="">Goto URL</a>
+						&nbsp;&nbsp;
+					</div>
+				</div>
+			</div>
+
+			<div class="flexify">
+				<span>Font Type:</span>
+				<div><select id="barcodeTextFontType"></select></div>
+				<span>Font Size:</span>
+				<div><input id="textSize" type="number" value="10" min="1"></div>
+				<span>Padding:</span>
+				<div><input type="number" id="padding" value="1" min="0" step="1" max="10"></div>
+			</div>
+			<div class="flexify">
+				<span>Barcode & Text color:</span>
+				<div><input type="color" id="fgcolor" value="#000000" /></div>
+				<span>Background color:</span>
+				<div><input type="color" id="bgcolor" value="#ffffff" /></div>
+				<span><label for="transparentBG">Generate with transparent background:</label></span>
+				<div><input type="checkbox" name="transparentBG" id="transparentBG" /></div>
+			</div>
+			<div class="flexify">
+				<span><label for="includeCheck">Include check:</label></span>
+				<div><input type="checkbox" name="includeCheck" id="includeCheck" /></div>
+				<span><label for="includeText">Include text:</label></span>
+				<div><input type="checkbox" name="includeText" id="includeText" /></div>
+				<span><label for="includeCheckInText">Include check in text:</label></span>
+				<div><input type="checkbox" name="includeCheckInText" id="includeCheckInText" /></div>
+			</div>
+			<div>
+				<span>Options:</span>
+				<div><textarea id="symopts" type="text"></textarea></div>
+			</div>
+			<div class="flexify">
+				<span>Scale X,Y:</span>
+				<div>
+					<input type="number" min="1" max="9" step="1" id="scaleX" value="2">
+					<input type="number" min="1" max="9" step="1" id="scaleY" value="2">
+				</div>
+			</div>
+			<div class="flexify">
+				<span>Image Rotation:</span>
+				<div>
+					<label for="rotateN"><input type="radio" name="rotate" value="N" id="rotateN" checked=""><span>Normal</span></label>
+					<label for="rotateR"><input type="radio" name="rotate" value="R" id="rotateR"><span>Right</span></label>
+					<label for="rotateL"><input type="radio" name="rotate" value="L" id="rotateL"><span>Left</span></label>
+					<label for="rotateI"><input type="radio" name="rotate" value="I" id="rotateI"><span>Invert</span></label>
+				</div>
+			</div>
+			<div class="flexify">
+				<span><label for="SVGRenderWithOnlyIntegers">Sharpen text:</label></span>
+				<div><input type="checkbox" name="SVGRenderWithOnlyIntegers" id="SVGRenderWithOnlyIntegers"></div>
+			</div>
+			<div>
+				<div></div>
+				<div>
+					<button style="margin-top:1ex" id="render" disabled>Show Barcode</button>
+					<button style="margin-top:1ex" onclick="(()=>{gbID('logArea').textContent = '';})()">Clear Log</button> <br>
+					<button style="margin-top:1ex" id="autoAAABarcodeColor" >Random AAA Barcode Color</button> <br>
+					<button style="margin-top:1ex" id="autoComplementaryBarcodeColor" >Random Complementary Barcode Color</button>
+				</div>
+			</div>
+			<div>
+				<span>WCAG 2.0 Compliance:</span>
+				<div class="borderify">
+					<table>
+						<tbody>
+							<tr>
+								<td><span>Luminance Ratio: 	<span id="LRatio">(uncalculated)</span></span></td>
+							</tr>
+							<tr>
+								<td style="padding-right: 1em;">
+									<span>AA Thin Text: 	<span class="passFail" id="AAThin"></span></span><br />
+								</td>
+								<td style="padding-right: 1em;">
+									<span>AA Thick Text: 	<span class="passFail" id="AAThick"></span></span><br />
+								</td>
+								<td>
+									<span>AA Input: 		<span class="passFail" id="AAInput"></span></span><br />
+								</td>
+							</tr>
+							<tr>
+								<td style="padding-right: 1em;">
+									<span>AAA Thin Text: 	<span class="passFail" id="AAAThin"></span></span><br />
+								</td>
+								<td>
+									<span>AAA Thick Text: 	<span class="passFail" id="AAAThick"></span></span><br />
+								</td>
+							</tr>
+						</tbody>
+					</table>
+				</div>
+			</div>
+			<div>
+				<span>Font Loader:</span>
+				<div class="borderify">
+					<form id="fontLoadForm">
+						<span>File (.ttf & .otf only): <input type="file" id="fontfile" name="fontfile" accept=".otf,.ttf" required></span> <br><br>
+						<span>Font Name: <input type="text" id="fontname" name="fontname" minlength="3" required></span> <br><br>
+						<button type="submit">Load Font File</button>
+					</form>
+				</div>
+			</div>
+
+			<div>
+				<span style="vertical-align: unset;">Log:</span>
+				<div class="borderify"><div id='logArea'></div></div>
+			</div>
 		</div>
 	</body>
 	<style id="stylus-23" type="text/css" class="stylus">
 		/** { outline: 1px solid blue; }*/
 
-		#symtext, #symopts { min-height: 5em; width: 50vw; }
-		#symbol, #symaltx { width: 100%; }
+		#symtext, #symopts { min-height: 5em; width: 100%; }
+		#symbol, #symaltx, #barcodeTextFontType { width: 100%; }
 		
 		/* bwip-js : lib/demo.css */
-		body { font: 11pt "Lucida Grande",Calibri,Helvetica,Arial,sans-serif; margin: 0; }
+		body { font: 1em "Lucida Grande",Calibri,Helvetica,Arial,sans-serif; margin: 0; }
 		#header {
 			background-color:	#212121;
 			color:				#fff;
-			height:				48px;
 			padding: 1em 0 1em 1em;
 		}
 		#header #bwip-js  { font-size: 25px; font-weight: bold; }
 		#header #versions { font-size: 12px; font-weight: 100; color: #a7a7a7; }
 		#header > * { max-width: calc(100% - 2em); }
-		input, select, label, button { font: 10.5pt Verdana, Arial, san-serif; }
-		#symbol, #symtext, #symaltx, #symopts, #scaleX, #scaleY {
+		input, select, label, button { font: Verdana, Arial, san-serif; }
+		#symbol, #symtext, #symaltx, #symopts, #scaleX, #scaleY, 
+		#barcodeTypeOptions, #barcodeTextFontType, #textSize, #padding {
 			padding:			.5ex;
 			box-sizing:			border-box;
 			border:				1px solid #999;
 			border-radius:		4px;
 		}
-		#barcodeTypeOptions { min-width: 8em; }
-		#params, #content { margin-left: 20px; margin-top: 10px; }
-		#params > table { max-width: calc(100% - 20px); }
-		#params th { text-align: right; padding-right: 1ex; max-width: 6em; }
-		#params th > label { font-size: 11pt; font-weight: 700; font-family: "Lucida Grande",Calibri,Helvetica,Arial,sans-serif; }
+		#symtext, #symaltx, #symopts {
+			margin-top: 0.2em;
+		}
+		#params { padding: 0.5em 1.5em 5em 1.5em;}
+		#content { padding: 1em;}
+		/* #params > table { max-width: calc(100% - 20px); } */
+		#params > div { padding-top: 0.5em; }
+		#params > div > span { font-weight: bold; }
+		#params div > label { font-weight: 700; font-family: "Lucida Grande",Calibri,Helvetica,Arial,sans-serif; }
 		#mainparams td:not([colspan]) { max-width: 10em; }
 		#textSize { max-width: 5em; }
 		button { padding: .5ex 1ex; min-width: 18ex; }
@@ -779,9 +785,31 @@
 			background:  repeating-conic-gradient(#808080 0% 25%, transparent 0% 50%) 50% / 20px 20px;
 		}
 
+		.hide {
+			display: none;
+		}
+
 		.borderify {
-			padding: 0.5em; 
+			padding: 0.5em;
+			margin-top: 0.5em;
 			border: 1px solid black;
+		}
+
+		.flexify {
+			display: flex;
+			align-items: center;
+		}
+
+		.flexify > * {
+			margin-right: 1em;
+		}
+		
+		.flexify span {
+			align-self: center;
+		}
+
+		input[type="checkbox"]{
+			width: 1.5em; height: 1.5em;
 		}
 
 
