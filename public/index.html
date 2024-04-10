@@ -8,8 +8,10 @@
 		<meta name="keywords" content="bar code, barcode generator, online barcode generator, free barcode generator, javascript, javascript library, nodejs, QR Code, EAN, EAN 13, Code 128, UPC, ISBN, ITF 14, Code 39, GS1, GS1 128, PDF417, HIBC, DataMatrix, Data Matrix, DataBar, OCR, OCR B, OCR font, Aztec Code, PostNet, USPS, Pharmacode">
 		<meta name="description" content="JavaScript barcode generator and library.  Create any barcode in your browser.">
 
+		<link rel="icon" type="image/x-icon" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAWCAYAAAChWZ5EAAAAAXNSR0IArs4c6QAAAHBJREFUSEtjZBhgwDjA9jMMKgf8p3NogD2PHAKDwwH//9PWHYyMcD9jDwGQA0CKiKVBwUisWpg6aFSPOmA0BEZDYAiEAK6iGVZOIMtjE8MmT1JBNGAOoGWlRDAEaGk5mtmDrzako+cRVg2qFtGAhAAA5KxUJnw2rHsAAAAASUVORK5CYII=">
+
 		<link rel="preload" href="./bwip-js_files/bwip-js-min.js" as="script" />
-		<link rel="preload" href="./bwip-js_files/fontLoader.js" as="script" />
+		<link rel="preload" href="./bwip-js_files/fonts.js" as="script" />
 		<link rel="preload" href="./bwip-js_files/drawing-svg.js" as="script" />
 		<link rel="preload" href="./bwip-js_files/barcodeTypeOptions.js" as="script" />
 
@@ -135,9 +137,28 @@
 				"hibcazteccode":					"HIBC Aztec Code"
 			};
 		</script>
-		<script type="text/javascript" src="./bwip-js_files/fontLoader.js"></script>
+		<script type="module" src="./bwip-js_files/fonts.js"></script>
 		<script type="text/javascript" src="./bwip-js_files/drawing-svg.js"></script>
 		<script type="text/javascript" src="./bwip-js_files/barcodeTypeOptions.js"></script>
+		<script type="module">
+			import fontList from './bwip-js_files/fonts.js';
+			window.fontLoaderLoop = setInterval(()=>{
+				let start = performance.now();
+
+				let fontOptions = document.getElementById('barcodeTextFontType');
+				for (const [fontName, fontFullName, fontData] of fontList) {
+					window.bwipjs.loadFont(fontName, fontData);
+					fontOptions.append(new Option(fontFullName, fontName));
+				}
+				
+				window.writeToLog(`Fonts loaded in ${(performance.now() - start).toFixed(3)}ms`);
+				document.getElementById('render').disabled = false;
+				window.fontLoadComplete = true;
+
+				clearInterval(window.fontLoaderLoop);
+				window.writeToLog("cleared font loader");
+			}, 100);
+		</script>
 		<script type="text/javascript">
 			const gbID =(x)=>document.getElementById(x);
 			let triggerDownload = (imgURI, fileName) => {
@@ -147,6 +168,36 @@
 			const getsRGB = c => (x=>((x <= 0.03928) ? x / 12.92 : Math.pow(((x + 0.055) / 1.055), 2.4)))(parseInt(c, 16) / 255);
 			const getL = c => (0.2126 * getsRGB(c[0]+c[1]) + 0.7152 * getsRGB(c[2]+c[3]) + 0.0722 * getsRGB(c[4]+c[5]));
 			const getLRatio = (fg, bg) => ((fgl, bgl)=>(Math.max(fgl, bgl) + 0.05) / (Math.min(fgl, bgl) + 0.05))(getL(fg), getL(bg));
+			const hti=(hex)=>parseInt(hex, 16);
+			const hexToRGB=(hex = "#000000")=>[hti(hex[1] + hex[2]), hti(hex[3] + hex[4]), hti(hex[5] + hex[6])];
+
+			// Adapted & optimized from https://gist.github.com/mjackson/5311256
+			function RGBtoHSL(r = 0, g = 0, b = 0){ r /= 255, g /= 255, b /= 255;
+				let max=Math.max(r,g,b), min=Math.min(r,g,b); let d=max-min, l2=max+min; // l2 = lightness * 2 
+
+				if (max == min) return { h: 0, s: 0, l: l2/2 }; // h = [0-1], s = [0-1], l = [0-1]
+				return {h:{[r]:(g-b)/d+(g<b?6:0), [g]:(b-r)/d+2, [b]:(r-g)/d+4}[max]/6, s:d/(l2>1?(2-l2):l2), l:l2/2 } 
+			}
+
+			function hue2rgb(p, q, t) {
+				t = (t < 0) ? t + 1 : ((t > 1) ? t - 1 : t );
+				if (t < 1/6) return p + (q - p) * 6 * t;
+				if (t < 1/2) return q;
+				if (t < 2/3) return p + (q - p) * (2/3 - t) * 6;
+				return p;
+			}
+
+			function hslToRgb(h = 0, s = 0, l = 0) { // h = [0-1], s = [0-1], l = [0-1]
+				// r = [0-255], g = [0-255], b = [0-255]
+				if (s == 0) return [ (l * 255)|0, (l * 255)|0, (l * 255)|0 ]; 
+
+				const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+				const p = 2 * l - q;
+				return [ 
+					(hue2rgb(p, q, h + 1/3) * 255)|0,  (hue2rgb(p, q, h) * 255)|0,  (hue2rgb(p, q, h - 1/3) * 255)|0
+				];
+			}
+
 
 			function saveCanvas(type, ext) {
 				let barcodeSVG = gbID('svgTarget').firstElementChild.cloneNode(true);
@@ -178,7 +229,7 @@
 						args.push(`${key}=${['text', 'alttext'].includes(key) ? encodeURIComponent(value) : value}`);
 					}
 				}
-				gbID('apiurl').href = `https://bwipjs-api.metafloor.com/?bcid=${opts['bcid']}&${args.join('&')}`;
+				gbID('apiurl').href = `./make_barcode/?bcid=${opts['bcid']}&${args.join('&')}`;
 			}
 
 			window.writeToLog = (text, error=false)=>{
@@ -202,6 +253,10 @@
 					rotate: document.querySelector('input[name="rotate"]:checked').value,
 					scaleX: +gbID('scaleX').value || 2,
 					scaleY: +gbID('scaleY').value || 2,
+					textScaleWidth: +gbID('textScaleWidth').value || 1,
+					textScaleHeight: +gbID('textScaleHeight').value || 1,
+					textOffsetX: +gbID('textOffsetX').value || 0,
+					textOffsetY: +gbID('textOffsetY').value || 0,
 					fontType: gbID('barcodeTextFontType').value,
 					fontSize: gbID('textSize').value,
 					includeCheck: gbID('includeCheck').checked,
@@ -212,7 +267,9 @@
 					fgColor: gbID('fgcolor').value.substr(1),
 					bgColor: gbID('bgcolor').value.substr(1),
 					transparentBG: gbID('transparentBG').checked,
-					padding: gbID('padding').value
+					padding: gbID('padding').value || 0,
+					forceOldRender: gbID('forceOldRender').checked || false,
+					parseAsUTF8: gbID('parseAsUTF8').checked??true,
 				}
 
 				localStorage.setItem('bwipjsLastSettings', JSON.stringify(settings));
@@ -224,7 +281,7 @@
 
 				// These opts already exist & will always be present (unless the DOM's been tampered)
 				let mandated_flags = {
-					'text': settings.text,
+					'text': (settings.parseAsUTF8 ? '^ECI000026' : '') + settings.text,
 					'alttext': settings.alttext,
 					'bcid': settings.symbol,
 					'scaleX': settings.scaleX,
@@ -244,16 +301,19 @@
 					...(settings.includeCheck && {'includecheck': settings.includeCheck}),
 					...(settings.includeText && {'includetext': settings.includeText}),
 					...(settings.includeCheckInText && {'includecheckintext': settings.includeCheckInText}),
+					...(settings.parseAsUTF8 && {'parsefnc': settings.parseAsUTF8}),
 				}
 
 				// Convert the misc options to an object.
 				let miscOpts = {};
 				for (const opt of settings.miscOptions.split(/\s+/)) {
-					let parts = opt.split('=');
+					const parts = opt.split('=');
+					if (opt.length === 0 || parts[0].length === 0) continue;
 					if (parts[0] === 'backgroundcolor') continue;
 					if (parts[0] === 'includecheck') continue;
 					if (parts[0] === 'includetext') continue;
 					if (parts[0] === 'includecheckintext') continue;
+					if (parts[0] === 'parsefnc') continue;
 
 					if (parts.length == 1) {
 						miscOpts[parts[0]] = true;
@@ -263,14 +323,30 @@
 				}
 
 				const opts = {...miscOpts, ...mandated_flags};
+				// console.log(miscOpts, mandated_flags);
 
 				// Draw the bar code to the canvas
 				let display = false;
 				try {
 					const ts0 = performance.now();
 					let clonedOpts = Object.assign({}, opts);
-					const svgResult = bwipjs.render(clonedOpts, window.DrawingSVG(clonedOpts, window.bwipjs.FontLib, settings.SVGRenderWithOnlyIntegers));
-					gbID('svgTarget').innerHTML = svgResult;
+					if (settings.forceOldRender) {
+						const svgResult = bwipjs.toSVG(clonedOpts);
+						let [ , width, height ] = /viewBox="0 0 (\d+) (\d+)"/.exec(svgResult);
+						gbID('svgTarget').innerHTML = svgResult;
+						gbID('svgTarget').firstElementChild.setAttribute('width', width);
+						gbID('svgTarget').firstElementChild.setAttribute('height', height);
+					} else {
+						const svgResult = bwipjs.render(
+							clonedOpts, 
+							window.DrawingSVG(
+								clonedOpts, window.bwipjs.FontLib, settings.SVGRenderWithOnlyIntegers,
+								textScale={width: settings.textScaleWidth, height: settings.textScaleHeight},
+								textOffset={x: settings.textOffsetX, y: settings.textOffsetY}
+							)
+						);
+						gbID('svgTarget').innerHTML = svgResult;
+					}
 
 					const LRatio = getLRatio(settings.fgColor, settings.bgColor);
 					gbID('LRatio').textContent = LRatio.toFixed(3);
@@ -383,34 +459,6 @@
 				gbID('autoComplementaryBarcodeColor').addEventListener('click', function(ev) {
 					ev.target.disabled = true;
 
-					const hti=(hex)=>parseInt(hex, 16);
-					const hexToRGB=(hex = "#000000")=>[hti(hex[1] + hex[2]), hti(hex[3] + hex[4]), hti(hex[5] + hex[6])];
-					function RGBtoHSL(r = 0, g = 0, b = 0){ r /= 255, g /= 255, b /= 255;
-						let max=Math.max(r,g,b), min=Math.min(r,g,b); let d=max-min, l2=max+min; // l2 = lightness * 2 
-
-						if (max == min) return { h: 0, s: 0, l: l2/2 }; // h = [0-1], s = [0-1], l = [0-1]
-						return {h:{[r]:(g-b)/d+(g<b?6:0), [g]:(b-r)/d+2, [b]:(r-g)/d+4}[max]/6, s:d/(l2>1?(2-l2):l2), l:l2/2 } 
-					}
-
-					function hue2rgb(p, q, t) {
-						t = (t < 0) ? t + 1 : ((t > 1) ? t - 1 : t );
-						if (t < 1/6) return p + (q - p) * 6 * t;
-						if (t < 1/2) return q;
-						if (t < 2/3) return p + (q - p) * (2/3 - t) * 6;
-						return p;
-					}
-
-					function hslToRgb(h = 0, s = 0, l = 0) { // h = [0-1], s = [0-1], l = [0-1]
-						// r = [0-255], g = [0-255], b = [0-255]
-						if (s == 0) return [ (l * 255)|0, (l * 255)|0, (l * 255)|0 ]; 
-
-						const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
-						const p = 2 * l - q;
-						return [ 
-							(hue2rgb(p, q, h + 1/3) * 255)|0,  (hue2rgb(p, q, h) * 255)|0,  (hue2rgb(p, q, h - 1/3) * 255)|0
-						];
-					}
-
 					setTimeout(()=>{
 						let ts0 = performance.now();
 
@@ -506,8 +554,63 @@
 					render(); ev.stopPropagation(); ev.preventDefault(); return false; 
 				});
 				gbID('symaltx').addEventListener('input', function (ev) { render(); ev.stopPropagation(); ev.preventDefault(); return false; });
+				gbID('textOffsetReset').addEventListener('click', function (ev) { 
+					gbID('textOffsetX').value = 0;
+					gbID('textOffsetY').value = 0;
+					render();
+				});
+				gbID('fixTextAlignment').addEventListener('click', function (ev) { 
+					const svg = gbID('svgTarget').children[0];
+					const linesArea = svg.querySelectorAll('g#linesArea')[0];
+					const notTextAreas = svg.querySelectorAll('path.not-text');
+					const text = svg.querySelectorAll('g.text')[0];
+					const getVal = (x, y) => x.getBoundingClientRect()[y];
+					console.log("fta", gbID('textOffsetX').valueAsNumber, text.getBoundingClientRect(), svg.getBoundingClientRect());
 
-				window.fontLoaderLoop = setInterval(window.fontLoader, 100);
+					let newTextOffsetX = 0, newTextOffsetY = 0;
+					const rotation = document.querySelector('input[name="rotate"]:checked').value;
+
+					if (rotation == "N") {
+						if (gbID('textScaleWidth').valueAsNumber === 1) {
+							newTextOffsetX = 0;
+						} else if (gbID('textOffsetX').valueAsNumber === 0) {
+							newTextOffsetX = -(getVal(text, 'x') - getVal(svg, 'x') - (getVal(svg, 'width') - getVal(text, 'width'))/2 )|0
+						} else {
+							const ideal = (getVal(svg, 'width') - getVal(text, 'width'))/2;
+							const current = getVal(text, 'x') - getVal(svg, 'x');
+							newTextOffsetX = (gbID('textOffsetX').valueAsNumber + (ideal - current))|0;
+						}
+
+						if (gbID('textScaleHeight').valueAsNumber === 1) {
+							newTextOffsetY = 0;
+						} else if (gbID('textOffsetY').valueAsNumber === 0) {
+							newTextOffsetY = (-(
+								getVal(svg, 'height') 
+								- [...notTextAreas].map(e=>getVal(e, 'height')).reduce((acc, val)=>acc + val, 0) 
+								- getVal(text, 'height')
+								- ((+gbID('scaleY').value || 2) * (gbID('padding').value || 0) * 3)
+							))|0;
+						} else {
+							const ideal = (getVal(svg, 'height') - getVal(text, 'height'))/2;
+							const current = getVal(text, 'y') - getVal(svg, 'y');
+							newTextOffsetY = (gbID('textOffsetX').valueAsNumber + (ideal - current))|0;
+						}
+					}
+
+					gbID('textOffsetX').value = newTextOffsetX;
+					gbID('textOffsetY').value = newTextOffsetY;
+					render();
+				});
+				gbID('manual-flexify').addEventListener('click', function (ev) { 
+					window.toggleFlexCSS = !window.toggleFlexCSS;
+					if (window.toggleFlexCSS) {
+						document.body.classList.remove('ignore-flexify');
+					} else {
+						document.body.classList.add('ignore-flexify');
+					}
+				});
+				gbID('manual-flexify').addEventListener('click', (ev)=>{ gbID('logArea').textContent = ''; });
+
 				window.savedDataLoader = setInterval(function() {
 					if(window.fontLoadComplete === true){
 						let element = gbID("symtext");
@@ -545,7 +648,14 @@
 							if (saved.version) { gbID('barcodeTypeOptions').value = saved.version; }
 							if (saved.text) { gbID('symtext').value = saved.text; }
 							if (saved.alttext) { gbID('symaltx').value = saved.alttext; }
-							if (saved.scaleX && saved.scaleY) { gbID('scaleX').value = saved.scaleX; gbID('scaleY').value = saved.scaleY; }
+							if (saved.scaleX && saved.scaleY) { 
+								gbID('scaleX').value = saved.scaleX; 
+								gbID('scaleY').value = saved.scaleY; 
+							}
+							if (saved.textScaleWidth && saved.textScaleHeight) {
+								gbID('textScaleWidth').value = saved.textScaleWidth;
+								gbID('textScaleHeight').value = saved.textScaleHeight;
+							}
 							if (saved.rotate) { gbID('rotate' + saved.rotate).checked = true; }
 							if (saved.fontType) { 
 								if([...gbID('barcodeTextFontType').options].some(e=>e.value === saved.fontType)){
@@ -565,6 +675,8 @@
 							if (saved.fgColor) { gbID('fgcolor').value = `#${saved.fgColor}`; }
 							if (saved.bgColor) { gbID('bgcolor').value = `#${saved.bgColor}`; }
 							if (saved.transparentBG) {  gbID('transparentBG').checked = saved.transparentBG; }
+							if (saved.forceOldRender) { gbID('forceOldRender').checked = saved.forceOldRender; }
+							if (saved.parseAsUTF8) { gbID('parseAsUTF8').checked = saved.parseAsUTF8; }
 						} else {
 							gbID('symbol').value = "qrcode";
 							window.changeBarcodeOptions(gbID('barcodeTypeOptions'),  gbID('symbol').value);
@@ -587,152 +699,191 @@
 		</script>
 	</head>
 
-	<body>
+	<body class="ignore-flexify">
 		<div id="header"> 
 			<div id="bwip-js">bwip-js // Barcode Writer in Pure JavaScript <a href="https://github.com/SteveHere/bwip-js-online" target="_blank">(SteveHere's fork)</a></div> 
 			<div id="versions"></div>
+			<button id="manual-flexify">Toggle Flex CSS</button>
 		</div>
-		
-		
 
-		<div id="params">
-			<div class="flexify">
-				<span>Barcode Type:</span>
-				<div><select id="symbol"></select></div>
-				<span>Version:</span>
-				<div><select id="barcodeTypeOptions"></select></div>
-			</div>
-			<div>
-				<span>Bar Text:</span>
-				<div><textarea id="symtext" type="text"></textarea></div>
-			</div>
-			<div>
-				<span>Alt Text:</span>
-				<div><input id="symaltx" type="text"></div>
-			</div>
-
-			<div id="resultsContainer" class="hide">
-				<span>Result: </span>
-				<div id="content">
-					<div id="svgTarget"></div>
+		<div id="main-area">
+			<div id="barcode-area">
+				<div class="flexify perma-flex">
+					<span>Barcode Type:</span>
+					<div><select id="symbol"></select></div>
+					<span>Version:</span>
+					<div><select id="barcodeTypeOptions"></select></div>
 				</div>
-				
 				<div>
-					<div id="saveas" style="visibility: hidden;">
-						<a class="saveas" href="javascript:saveSVG()">Save As SVG</a>
-						&nbsp;&nbsp;
-						<a class="saveas" href="javascript:saveCanvas('image/png','.png')">Save As PNG</a>
-						&nbsp;&nbsp;
-						<a class="saveas" href="javascript:saveCanvas('image/jpeg','.jpg')">Save As JPEG</a>
-						&nbsp;&nbsp;
-						<a class="saveas" id="apiurl" href="">Goto URL</a>
-						&nbsp;&nbsp;
+					<span>Bar Text:</span>
+					<div><textarea id="symtext" type="text"></textarea></div>
+				</div>
+				<div>
+					<span>Alt Text:</span>
+					<div><input id="symaltx" type="text"></div>
+				</div>
+
+				<div id="resultsContainer" class="hide">
+					<span>Result: </span>
+					<div id="content">
+						<div id="svgTarget"></div>
+					</div>
+					
+					<div>
+						<div id="saveas" style="visibility: hidden;">
+							<a class="saveas" href="javascript:saveSVG()">Save As SVG</a>
+							&nbsp;&nbsp;
+							<a class="saveas" href="javascript:saveCanvas('image/png','.png')">Save As PNG</a>
+							&nbsp;&nbsp;
+							<a class="saveas" href="javascript:saveCanvas('image/jpeg','.jpg')">Save As JPEG</a>
+							&nbsp;&nbsp;
+							<a class="saveas" id="apiurl" href="">Goto URL</a>
+							&nbsp;&nbsp;
+						</div>
 					</div>
 				</div>
 			</div>
 
-			<div class="flexify">
-				<span>Font Type:</span>
-				<div><select id="barcodeTextFontType"></select></div>
-				<span>Font Size:</span>
-				<div><input id="textSize" type="number" value="10" min="1"></div>
-				<span>Padding:</span>
-				<div><input type="number" id="padding" value="1" min="0" step="1" max="10"></div>
-			</div>
-			<div class="flexify">
-				<span>Barcode & Text color:</span>
-				<div><input type="color" id="fgcolor" value="#000000" /></div>
-				<span>Background color:</span>
-				<div><input type="color" id="bgcolor" value="#ffffff" /></div>
-				<span><label for="transparentBG">Generate with transparent background:</label></span>
-				<div><input type="checkbox" name="transparentBG" id="transparentBG" /></div>
-			</div>
-			<div class="flexify">
-				<span><label for="includeCheck">Include check:</label></span>
-				<div><input type="checkbox" name="includeCheck" id="includeCheck" /></div>
-				<span><label for="includeText">Include text:</label></span>
-				<div><input type="checkbox" name="includeText" id="includeText" /></div>
-				<span><label for="includeCheckInText">Include check in text:</label></span>
-				<div><input type="checkbox" name="includeCheckInText" id="includeCheckInText" /></div>
-			</div>
-			<div>
-				<span>Options:</span>
-				<div><textarea id="symopts" type="text"></textarea></div>
-			</div>
-			<div class="flexify">
-				<span>Scale X,Y:</span>
+			<div id="params">
+				<div class="optionContainer">
+					<div class="flexify">
+						<div class="flexify perma-flex">
+							<span>Font Type:</span>
+							<div><select id="barcodeTextFontType"></select></div>
+						</div>
+						<div class="flexify perma-flex pad-top">
+							<span>Font Size:</span>
+							<div><input id="textSize" type="number" value="10" min="1"></div>
+							<span>Padding:</span>
+							<div><input type="number" id="padding" value="1" min="0" step="1" max="10"></div>
+						</div>
+					</div>
+					<div class="flexify perma-flex pad-top">
+						<span>Barcode & Text color:</span>
+						<div><input type="color" id="fgcolor" value="#000000" /></div>
+						<span>Background color:</span>
+						<div><input type="color" id="bgcolor" value="#ffffff" /></div>
+						<span><label for="transparentBG">Generate with transparent background:</label></span>
+						<div><input type="checkbox" name="transparentBG" id="transparentBG" /></div>
+					</div>
+					<div class="flexify perma-flex pad-top">
+						<span><label for="includeText">Include text:</label></span>
+						<div><input type="checkbox" name="includeText" id="includeText" /></div>
+						<span><label for="includeCheck">Include check:</label></span>
+						<div><input type="checkbox" name="includeCheck" id="includeCheck" /></div>
+						<span><label for="includeCheckInText">Include check in text:</label></span>
+						<div><input type="checkbox" name="includeCheckInText" id="includeCheckInText" /></div>
+					</div>
+				</div>
+				<div class="optionContainer">
+					<div class="flexify perma-flex pad-top">
+						<span>Scale X,Y:</span>
+						<div>
+							<input type="number" min="1" max="9" step="1" id="scaleX" value="2">
+							<input type="number" min="1" max="9" step="1" id="scaleY" value="2">
+						</div>
+					</div>
+					<div class="flexify perma-flex pad-top">
+						<span>Text Scaling Width,Height:</span>
+						<div>
+							<input type="number" min="0.1" max="4" step="0.1" id="textScaleWidth" value="2">
+							<input type="number" min="0.1" max="4" step="0.1" id="textScaleHeight" value="2">
+						</div>
+					</div>
+					<div class="flexify perma-flex pad-top" style="flex-wrap: wrap;">
+						<span>Text Offset X,Y:</span>
+						<div>
+							<input type="number" min="-200" max="200" step="1" id="textOffsetX" value="0">
+							<input type="number" min="-200" max="200" step="1" id="textOffsetY" value="0">
+						</div>
+						<div class="pad-top">
+							<button id="textOffsetReset">Clear Offsets</button>
+							<button id="fixTextAlignment">Fix Text Alignment</button>
+						</div>
+					</div>
+					<div class="flexify perma-flex pad-top">
+						<span>Image Rotation:</span>
+						<div>
+							<label for="rotateN"><input type="radio" name="rotate" value="N" id="rotateN" checked=""><span>Normal</span></label>
+							<label for="rotateR"><input type="radio" name="rotate" value="R" id="rotateR"><span>Right</span></label>
+							<label for="rotateL"><input type="radio" name="rotate" value="L" id="rotateL"><span>Left</span></label>
+							<label for="rotateI"><input type="radio" name="rotate" value="I" id="rotateI"><span>Invert</span></label>
+						</div>
+					</div>
+					
+					<div class="flexify perma-flex pad-top">
+						<span><label for="parseAsUTF8">Parse text as UTF-8:</label></span>
+						<div><input type="checkbox" name="parseAsUTF8" id="parseAsUTF8" checked></div>
+					</div>
+					<div class="flexify perma-flex pad-top">
+						<span><label for="SVGRenderWithOnlyIntegers">Sharpen text:</label></span>
+						<div><input type="checkbox" name="SVGRenderWithOnlyIntegers" id="SVGRenderWithOnlyIntegers"></div>
+					</div>
+					<div class="flexify perma-flex pad-top">
+						<span><label for="forceOldRender">Use old renderer:</label></span>
+						<div><input type="checkbox" name="forceOldRender" id="forceOldRender"></div>
+					</div>
+				</div>
 				<div>
-					<input type="number" min="1" max="9" step="1" id="scaleX" value="2">
-					<input type="number" min="1" max="9" step="1" id="scaleY" value="2">
+					<span>Other Options:</span>
+					<div><textarea id="symopts" type="text"></textarea></div>
 				</div>
-			</div>
-			<div class="flexify">
-				<span>Image Rotation:</span>
 				<div>
-					<label for="rotateN"><input type="radio" name="rotate" value="N" id="rotateN" checked=""><span>Normal</span></label>
-					<label for="rotateR"><input type="radio" name="rotate" value="R" id="rotateR"><span>Right</span></label>
-					<label for="rotateL"><input type="radio" name="rotate" value="L" id="rotateL"><span>Left</span></label>
-					<label for="rotateI"><input type="radio" name="rotate" value="I" id="rotateI"><span>Invert</span></label>
+					<div></div>
+					<div>
+						<button style="margin-top:1ex" id="render" disabled>Show Barcode</button>
+						<button style="margin-top:1ex" id="logClear">Clear Log</button> <br>
+						<button style="margin-top:1ex" id="autoAAABarcodeColor" >Random AAA Barcode Color</button> <br>
+						<button style="margin-top:1ex" id="autoComplementaryBarcodeColor" >Random Complementary Barcode Color</button>
+					</div>
 				</div>
-			</div>
-			<div class="flexify">
-				<span><label for="SVGRenderWithOnlyIntegers">Sharpen text:</label></span>
-				<div><input type="checkbox" name="SVGRenderWithOnlyIntegers" id="SVGRenderWithOnlyIntegers"></div>
-			</div>
-			<div>
-				<div></div>
 				<div>
-					<button style="margin-top:1ex" id="render" disabled>Show Barcode</button>
-					<button style="margin-top:1ex" onclick="(()=>{gbID('logArea').textContent = '';})()">Clear Log</button> <br>
-					<button style="margin-top:1ex" id="autoAAABarcodeColor" >Random AAA Barcode Color</button> <br>
-					<button style="margin-top:1ex" id="autoComplementaryBarcodeColor" >Random Complementary Barcode Color</button>
+					<span>WCAG 2.0 Compliance:</span>
+					<div class="borderify">
+						<table>
+							<tbody>
+								<tr>
+									<td><span>Luminance Ratio: 	<span id="LRatio">(uncalculated)</span></span></td>
+								</tr>
+								<tr>
+									<td style="padding-right: 1em;">
+										<span>AA Thin Text: 	<span class="passFail" id="AAThin"></span></span><br />
+									</td>
+									<td style="padding-right: 1em;">
+										<span>AA Thick Text: 	<span class="passFail" id="AAThick"></span></span><br />
+									</td>
+									<td>
+										<span>AA Input: 		<span class="passFail" id="AAInput"></span></span><br />
+									</td>
+								</tr>
+								<tr>
+									<td style="padding-right: 1em;">
+										<span>AAA Thin Text: 	<span class="passFail" id="AAAThin"></span></span><br />
+									</td>
+									<td>
+										<span>AAA Thick Text: 	<span class="passFail" id="AAAThick"></span></span><br />
+									</td>
+								</tr>
+							</tbody>
+						</table>
+					</div>
 				</div>
-			</div>
-			<div>
-				<span>WCAG 2.0 Compliance:</span>
-				<div class="borderify">
-					<table>
-						<tbody>
-							<tr>
-								<td><span>Luminance Ratio: 	<span id="LRatio">(uncalculated)</span></span></td>
-							</tr>
-							<tr>
-								<td style="padding-right: 1em;">
-									<span>AA Thin Text: 	<span class="passFail" id="AAThin"></span></span><br />
-								</td>
-								<td style="padding-right: 1em;">
-									<span>AA Thick Text: 	<span class="passFail" id="AAThick"></span></span><br />
-								</td>
-								<td>
-									<span>AA Input: 		<span class="passFail" id="AAInput"></span></span><br />
-								</td>
-							</tr>
-							<tr>
-								<td style="padding-right: 1em;">
-									<span>AAA Thin Text: 	<span class="passFail" id="AAAThin"></span></span><br />
-								</td>
-								<td>
-									<span>AAA Thick Text: 	<span class="passFail" id="AAAThick"></span></span><br />
-								</td>
-							</tr>
-						</tbody>
-					</table>
+				<div>
+					<span>Font Loader:</span>
+					<div class="borderify">
+						<form id="fontLoadForm">
+							<span>File (.ttf & .otf only): <input type="file" id="fontfile" name="fontfile" accept=".otf,.ttf" required></span> <br><br>
+							<span>Font Name: <input type="text" id="fontname" name="fontname" minlength="3" required></span> <br><br>
+							<button type="submit">Load Font File</button>
+						</form>
+					</div>
 				</div>
-			</div>
-			<div>
-				<span>Font Loader:</span>
-				<div class="borderify">
-					<form id="fontLoadForm">
-						<span>File (.ttf & .otf only): <input type="file" id="fontfile" name="fontfile" accept=".otf,.ttf" required></span> <br><br>
-						<span>Font Name: <input type="text" id="fontname" name="fontname" minlength="3" required></span> <br><br>
-						<button type="submit">Load Font File</button>
-					</form>
-				</div>
-			</div>
 
-			<div>
-				<span style="vertical-align: unset;">Log:</span>
-				<div class="borderify"><div id='logArea'></div></div>
+				<div>
+					<span style="vertical-align: unset;">Log:</span>
+					<div class="borderify"><div id='logArea'></div></div>
+				</div>
+
 			</div>
 		</div>
 	</body>
@@ -753,7 +904,7 @@
 		#header #versions { font-size: 12px; font-weight: 100; color: #a7a7a7; }
 		#header > * { max-width: calc(100% - 2em); }
 		input, select, label, button { font: Verdana, Arial, san-serif; }
-		#symbol, #symtext, #symaltx, #symopts, #scaleX, #scaleY, 
+		#symbol, #symtext, #symaltx, #symopts, #scaleX, #scaleY,
 		#barcodeTypeOptions, #barcodeTextFontType, #textSize, #padding {
 			padding:			.5ex;
 			box-sizing:			border-box;
@@ -763,12 +914,12 @@
 		#symtext, #symaltx, #symopts {
 			margin-top: 0.2em;
 		}
-		#params { padding: 0.5em 1.5em 5em 1.5em;}
+		#params, #barcode-area { padding: 0.5em 1.5em 5em 1.5em;}
 		#content { padding: 1em;}
 		/* #params > table { max-width: calc(100% - 20px); } */
-		#params > div { padding-top: 0.5em; }
-		#params > div > span { font-weight: bold; }
-		#params div > label { font-weight: 700; font-family: "Lucida Grande",Calibri,Helvetica,Arial,sans-serif; }
+		#params > div, #barcode-area > div { padding-top: 0.5em; }
+		#params > div > span, #barcode-area > div > span { font-weight: bold; }
+		#params div > label, #barcode-area div > label { font-weight: 700; font-family: "Lucida Grande",Calibri,Helvetica,Arial,sans-serif; }
 		#mainparams td:not([colspan]) { max-width: 10em; }
 		#textSize { max-width: 5em; }
 		button { padding: .5ex 1ex; min-width: 18ex; }
@@ -795,18 +946,31 @@
 			border: 1px solid black;
 		}
 
-		.flexify {
+		body:not(.ignore-flexify) .flexify, .flexify.perma-flex {
 			display: flex;
 			align-items: center;
 		}
 
-		.flexify > * {
+		body:not(.ignore-flexify) .flexify > *, .flexify.perma-flex > * {
 			margin-right: 1em;
 		}
 		
-		.flexify span {
+		body:not(.ignore-flexify) .flexify span, .flexify.perma-flex span {
 			align-self: center;
 		}
+
+		body.ignore-flexify div#barcode-area {
+			width: 60%;
+		}
+
+		body.ignore-flexify div#params {
+			width: 35%;
+		}
+
+		body.ignore-flexify div#main-area {
+			display: flex;
+		}
+
 
 		input[type="checkbox"]{
 			width: 1.5em; height: 1.5em;
@@ -827,6 +991,15 @@
 		#logArea span.loggederror {
 			color: red;
 			font-weight: bold;
+		}
+
+		.optionContainer {
+			border: 1px solid black;
+			padding: 1em;
+		}
+
+		.pad-top {
+			padding-top: 0.5em;
 		}
 	</style>
 </html>
